@@ -1,0 +1,6 @@
+server/private/*
+
+__pycache__
+
+*.log
+*.out
