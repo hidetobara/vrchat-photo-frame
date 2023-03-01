@@ -15,3 +15,4 @@ CMD exec gunicorn --bind :8080 --workers 1 app:app
 
 # docker build -t gcr.io/vrchat-analyzer/photoframe .
 # docker run --rm -it -p 8080:8080 -v c:/obara/vrchat_photoframe/server:/app gcr.io/vrchat-analyzer/photoframe /bin/bash
+# docker image push  gcr.io/vrchat-analyzer/photoframe

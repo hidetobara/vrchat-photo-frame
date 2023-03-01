@@ -7,7 +7,7 @@ from src.Sheet import Sheet
 
 class Web:
 
-    def __init__(self, config):
+    def __init__(self, config: Config):
         self.config = config
 
     def get_base_context(self):
@@ -31,7 +31,15 @@ class Web:
         context = self.get_base_context()
         return render_template('top.html', **context)
 
-    def get_sheet(self, key, worksheet="main"):
+    def get_item(self, key: str, worksheet: str, name: str):
+        sheet = Sheet(key)
+        table = sheet.load(worksheet)
+        for value in table.values():
+            if value.name == name:
+                return value
+        return None
+
+    def get_sheet(self, key: str, worksheet="main"):
         try:
             sheet = Sheet(key)
             table = sheet.load(worksheet)
