@@ -1,11 +1,12 @@
-import os, sys, hashlib
+import os, sys, hashlib, shutil
 import requests
 from flask import Flask, render_template, request, send_from_directory, redirect, jsonify
+from PIL import Image
 
 from src.Config import Config
 from src.Web import Web
 
-MIMETYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif"}
+MIMETYPES = {".png": "image/png", ".jpg": "image/jpeg"}
 
 app = Flask(__name__)
 c = Config("private/photoframe.json")
@@ -27,18 +28,33 @@ def get_sheet():
 def download_img(key, worksheet, name):
     try:
         sha_name = hashlib.sha256((key + "/" + worksheet + "/" + name).encode("utf-8")).hexdigest()
-        cells = os.path.splitext(name)
-        ext = cells[1]
-        mimetype = MIMETYPES[ext]
-        tmp_path = "/tmp/" + sha_name + ext
-        if not os.path.isfile(tmp_path):
+        ext = None
+        for e, type in MIMETYPES.items():
+            path = "/tmp/" + sha_name + e
+            if os.path.isfile(path):
+                ext = e
+                break
+        if ext is None:
             item = web.get_item(key, worksheet, name)
             if item is None:
                 raise Exception(f"Not found {name}")
             response = requests.get(item.url)
+            response.raise_for_status()
+            tmp_path = "/tmp/" + sha_name
             with open(tmp_path, "wb") as f:
                 f.write(response.content)
-        return send_from_directory("/tmp", sha_name + ext, mimetype=f"image/{mimetype}")
+            with Image.open(tmp_path) as im:
+                if im.size[0] > 2048 or im.size[1] > 2048:
+                    raise Exception("Too big image")
+                if im.format == "PNG":
+                    ext = ".png"
+                if im.format == "JPEG":
+                    ext = ".jpg"
+            if ext is None:
+                raise Exception("Unknown format")
+            shutil.move(tmp_path, "/tmp/" + sha_name + ext)        
+
+        return send_from_directory("/tmp", sha_name + ext, mimetype=MIMETYPES[ext])
     except Exception as ex:
         return str(ex), 404
 
