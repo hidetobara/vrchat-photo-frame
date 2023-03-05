@@ -1,12 +1,9 @@
-import os, sys, hashlib, shutil
-import requests
+import os, sys
 from flask import Flask, render_template, request, send_from_directory, redirect, jsonify
-from PIL import Image
 
 from src.Config import Config
 from src.Web import Web
 
-MIMETYPES = {".png": "image/png", ".jpg": "image/jpeg"}
 
 app = Flask(__name__)
 c = Config("private/photoframe.json")
@@ -20,41 +17,25 @@ def utility_processor():
 def get_index():
     return web.get_index()
 
-@app.route('/sheet', methods=['GET'])
-def get_sheet():
-    return web.get_sheet(request.args.get('key', ''), request.args.get('worksheet', 'main'))
+@app.route('/sheet/<key>/<worksheet>.csv', methods=['GET'])
+def get_sheet_csv(key, worksheet):
+    try:
+        return "OK\n" + web.get_sheet(key, worksheet, "csv")
+    except Exception as ex:
+        return "FAIL\n" + str(ex), 404
 
-@app.route('/img/<key>/<worksheet>/<name>')
+@app.route('/sheet/<key>/<worksheet>.json', methods=['GET'])
+def get_sheet_json(key, worksheet):
+    try:
+        return "OK\n" + web.get_sheet(key, worksheet, "json")
+    except Exception as ex:
+        return "FAIL\n" + str(ex), 404
+
+@app.route('/img/<key>/<worksheet>/<name>', methods=['GET'])
 def download_img(key, worksheet, name):
     try:
-        sha_name = hashlib.sha256((key + "/" + worksheet + "/" + name).encode("utf-8")).hexdigest()
-        ext = None
-        for e, type in MIMETYPES.items():
-            path = "/tmp/" + sha_name + e
-            if os.path.isfile(path):
-                ext = e
-                break
-        if ext is None:
-            item = web.get_item(key, worksheet, name)
-            if item is None:
-                raise Exception(f"Not found {name}")
-            response = requests.get(item.url)
-            response.raise_for_status()
-            tmp_path = "/tmp/" + sha_name
-            with open(tmp_path, "wb") as f:
-                f.write(response.content)
-            with Image.open(tmp_path) as im:
-                if im.size[0] > 2048 or im.size[1] > 2048:
-                    raise Exception("Too big image")
-                if im.format == "PNG":
-                    ext = ".png"
-                if im.format == "JPEG":
-                    ext = ".jpg"
-            if ext is None:
-                raise Exception("Unknown format")
-            shutil.move(tmp_path, "/tmp/" + sha_name + ext)        
-
-        return send_from_directory("/tmp", sha_name + ext, mimetype=MIMETYPES[ext])
+        filename, mime = web.download_img(key, worksheet, name)
+        return send_from_directory(Web.TMP_DIR, filename, mimetype=mime)
     except Exception as ex:
         return str(ex), 404
 

@@ -1,11 +1,16 @@
-import os,sys
+import os, hashlib, shutil, requests, json
 from flask import Flask, render_template, request, send_from_directory, redirect, jsonify
+from PIL import Image
 
 from src.Config import Config
 from src.Sheet import Sheet
 
 
+MIMETYPES = {".png": "image/png", ".jpg": "image/jpeg"}
+
 class Web:
+
+    TMP_DIR = "/tmp/"
 
     def __init__(self, config: Config):
         self.config = config
@@ -39,14 +44,50 @@ class Web:
                 return value
         return None
 
-    def get_sheet(self, key: str, worksheet="main"):
-        try:
-            sheet = Sheet(key)
-            table = sheet.load(worksheet)
-            lines = ["OK"]
+    def get_sheet(self, key: str, worksheet: str, format: str):
+        sheet = Sheet(key)
+        table = sheet.load(worksheet)
+        if format == "csv":
+            lines = []
             for value in table.values():
                 lines.append(",".join(value.to_csv()))
             return "\n".join(lines)
-        except Exception as ex:
-            return "ERROR\n" + str(ex)
+        elif format == "json":
+            box = []
+            for value in table.values():
+                box.append(value.to_json())
+            return json.dumps(box, ensure_ascii=False)
+        else:
+            raise Exception("Invalid format")
+        
+    def download_img(self, key: str, worksheet: str, name: str):
+        sha_name = hashlib.sha256((key + "/" + worksheet + "/" + name).encode("utf-8")).hexdigest()
+        ext = None
+        for e, type in MIMETYPES.items():
+            path = Web.TMP_DIR + sha_name + e
+            if os.path.isfile(path):
+                ext = e
+                break
+        if ext is None:
+            item = self.get_item(key, worksheet, name)
+            if item is None:
+                raise Exception(f"Not found {name}")
+            response = requests.get(item.url)
+            response.raise_for_status()
+            tmp_path = Web.TMP_DIR + sha_name
+            with open(tmp_path, "wb") as f:
+                f.write(response.content)
+            with Image.open(tmp_path) as im:
+                if im.size[0] > 2048 or im.size[1] > 2048:
+                    raise Exception("Too big image")
+                if im.format == "PNG":
+                    ext = ".png"
+                if im.format == "JPEG":
+                    ext = ".jpg"
+            if ext is None:
+                raise Exception("Unknown format")
+            shutil.move(tmp_path, Web.TMP_DIR + sha_name + ext)
+
+        return sha_name + ext, MIMETYPES[ext]
+
 

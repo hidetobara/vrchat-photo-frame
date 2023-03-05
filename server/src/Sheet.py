@@ -13,6 +13,8 @@ class Item:
 
     def to_csv(self):
         return [self.name, self.url, self.title]
+    def to_json(self):
+        return {"name": self.name, "url": self.url, "title": self.title}
 
 class Sheet:
     def __init__(self, key):
