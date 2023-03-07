@@ -11,9 +11,10 @@ MIMETYPES = {".png": "image/png", ".jpg": "image/jpeg"}
 class Web:
 
     TMP_DIR = "/tmp/"
+    ITEM_LIMIT = 10
 
     def __init__(self, config: Config):
-        self.config = config
+        self.limits = config.get("limits", {})
 
     def get_base_context(self):
         return {}
@@ -47,15 +48,24 @@ class Web:
     def get_sheet(self, key: str, worksheet: str, format: str):
         sheet = Sheet(key)
         table = sheet.load(worksheet)
+        items = list(table.values())
+
+        limit = Web.ITEM_LIMIT
+        limit_key = key + "|" + worksheet
+        if limit_key in self.limits:
+            limit = self.limits[limit_key]
+        if len(items) > limit:
+            items = items[0:limit]
+
         if format == "csv":
             lines = []
-            for value in table.values():
-                lines.append(",".join(value.to_csv()))
+            for item in items:
+                lines.append(",".join(item.to_csv()))
             return "\n".join(lines)
         elif format == "json":
             box = []
-            for value in table.values():
-                box.append(value.to_json())
+            for item in items:
+                box.append(item.to_json())
             return json.dumps(box, ensure_ascii=False)
         else:
             raise Exception("Invalid format")
