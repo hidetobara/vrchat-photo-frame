@@ -1,6 +1,9 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials 
 
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
+
 
 class Item:
     def __init__(self, name, url, title) -> None:
@@ -18,10 +21,23 @@ class Item:
 
 class Sheet:
     def __init__(self, key):
-        scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+        scope = ['https://spreadsheets.google.com/feeds',
+                 'https://www.googleapis.com/auth/drive.readonly']
         credentials = ServiceAccountCredentials.from_json_keyfile_name('./private/vrchat-analyzer-ba2bcb1497e6.json', scope)
         self.gc = gspread.authorize(credentials)
         self.key = key
+        self.owner = self.selectOwner(credentials)
+
+    def selectOwner(self, credentials):
+        gauth = GoogleAuth()
+        gauth.auth_method = 'service'
+        gauth.credentials = credentials
+        drive = GoogleDrive(gauth)
+        file = drive.CreateFile({'id': self.key})
+        for permission in file.GetPermissions():
+            if permission['role'] == 'owner':
+                return permission['emailAddress']
+        return None
 
     def load(self, worksheet) -> dict:
         worksheet = self.gc.open_by_key(self.key).worksheet(worksheet)

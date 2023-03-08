@@ -20,24 +20,32 @@ def get_index():
 @app.route('/sheet/<key>/<worksheet>.csv', methods=['GET'])
 def get_sheet_csv(key, worksheet):
     try:
-        return "OK\n" + web.get_sheet(key, worksheet, "csv")
+        return "OK\n" + web.prepare(key).get_sheet(worksheet, "csv")
     except Exception as ex:
         return "FAIL\n" + str(ex), 404
 
 @app.route('/sheet/<key>/<worksheet>.json', methods=['GET'])
 def get_sheet_json(key, worksheet):
     try:
-        return "OK\n" + web.get_sheet(key, worksheet, "json")
+        return "OK\n" + web.prepare(key).get_sheet(worksheet, "json")
     except Exception as ex:
         return "FAIL\n" + str(ex), 404
 
 @app.route('/img/<key>/<worksheet>/<name>', methods=['GET'])
 def download_img(key, worksheet, name):
     try:
-        filename, mime = web.download_img(key, worksheet, name)
-        return send_from_directory(Web.TMP_DIR, filename, mimetype=mime)
+        tmp_dir, filename, mime = web.prepare(key).download_img(worksheet, name)
+        return send_from_directory(tmp_dir, filename, mimetype=mime)
     except Exception as ex:
-        return str(ex), 404
+        return "FAIL\n" + str(ex), 404
+
+@app.route('/clear/<key>/<worksheet>', methods=['GET'])
+def clear_my_dir(key, worksheet):
+    try:
+        web.prepare(key).clear_my_dir(worksheet)
+        return "OK"
+    except Exception as ex:
+        return "FAIL\n" + str(ex), 404
 
 
 if __name__ == "__main__":
