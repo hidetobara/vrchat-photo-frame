@@ -11,7 +11,7 @@ MIMETYPES = {".png": "image/png", ".jpg": "image/jpeg"}
 class Web:
 
     TMP_DIR = "/tmp/"
-    ITEM_LIMIT = 8
+    ITEM_LIMIT = 5
 
     def __init__(self, config: Config):
         self.limits = config.get("limits", {})
@@ -123,4 +123,4 @@ class Web:
     def clear_my_dir(self, worksheet: str):
         sha_folder = hashlib.md5((self.sheet.owner).encode("utf-8")).hexdigest()
         tmp_dir = Web.TMP_DIR + sha_folder + "/"
-        shutil.rmtree(tmp_dir)
+        shutil.rmtree(tmp_dir, ignore_errors=True)
