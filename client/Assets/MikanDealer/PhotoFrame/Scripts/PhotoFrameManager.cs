@@ -4,6 +4,6 @@ using UnityEngine;
 
 public class PhotoFrameManager : MonoBehaviour
 {
-	public string SpreadSheetKey;
+	public string SpreadSheetUrl;
 	public string WorkSheet;
 }

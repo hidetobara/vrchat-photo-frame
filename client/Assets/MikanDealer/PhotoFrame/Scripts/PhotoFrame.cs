@@ -9,6 +9,7 @@ using VRC.Udon.Common.Interfaces;
 public class PhotoFrame : UdonSharpBehaviour
 {
 	public string Name;
+	[HideInInspector]
 	public VRCUrl Url;
 
 	void Start()
@@ -23,6 +24,6 @@ public class PhotoFrame : UdonSharpBehaviour
 
 	override public void OnImageLoadSuccess(IVRCImageDownload download)
 	{
-		Debug.Log(download.TextureInfo.FilterMode);
+		//Debug.Log(download.TextureInfo.FilterMode);
 	}
 }

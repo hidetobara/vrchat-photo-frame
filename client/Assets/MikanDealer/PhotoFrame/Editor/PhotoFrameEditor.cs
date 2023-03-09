@@ -6,7 +6,9 @@ using UnityEditor;
 using UnityEngine.Networking;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using UnityEditor.PackageManager;
+using System.Security.Policy;
 
 namespace MikanDealer
 {
@@ -32,17 +34,38 @@ namespace MikanDealer
 			using (new EditorGUILayout.HorizontalScope())
 			{
 				if (GUILayout.Button("更新＆お試し表示"))
-					EditorCoroutine.Start(UpdatingPhotoFrames(_Instance.SpreadSheetKey, _Instance.WorkSheet));
+					EditorCoroutine.Start(UpdatingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
 				if (GUILayout.Button("クリア"))
-					ClearingPhotoFrames();
+					EditorCoroutine.Start(ClearingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
 
 			}
 
 		}
 
-		private IEnumerator UpdatingPhotoFrames(string key, string worksheet)
+		private string GetSpreadSheetKey(string url)
 		{
-			if (!Validate(key, worksheet)) yield break;
+			Match match = Regex.Match(url, "https://docs.google.com/spreadsheets/d/([a-zA-Z0-9]+)/");
+			if (match.Success) return match.Groups[1].Value;
+
+			Debug.LogError("スプレッドシートのURLを入力してください\n例:https://docs.google.com/spreadsheets/d/hoge/");
+			return null;
+		}
+
+		private bool Validate(string key, string worksheet)
+		{
+			if (string.IsNullOrEmpty(worksheet))
+			{
+				Debug.LogError("ワークシートが入力されていません");
+				return false;
+			}
+			return true;
+		}
+
+		private IEnumerator UpdatingPhotoFrames(string url, string worksheet)
+		{
+			string key = GetSpreadSheetKey(url);
+			if (string.IsNullOrEmpty(key) || !Validate(key, worksheet)) yield break;
+
 			EditorCoroutine.Start(GettingPhotoTable(key, worksheet));
 			int life = 0;
 			while(PhotoTable == null)
@@ -63,34 +86,19 @@ namespace MikanDealer
 			}
 		}
 
-		private void ClearingPhotoFrames()
+		private IEnumerator ClearingPhotoFrames(string url, string worksheet)
 		{
-			foreach(var frame in SelectPhotoFrames())
+			foreach (var frame in SelectPhotoFrames())
 			{
 				ClearTexture(frame);
 			}
-		}
 
-		private bool Validate(string key, string worksheet)
-		{
-			if (string.IsNullOrEmpty(key))
-			{
-				Debug.LogError("スプレッドシートのキーが入力されていません");
-				return false;
-			}
-			if (string.IsNullOrEmpty(worksheet))
-			{
-				Debug.LogError("ワークシートが入力されていません");
-				return false;
-			}
-			return true;
-		}
+			string key = GetSpreadSheetKey(url);
+			if (string.IsNullOrEmpty(key) || !Validate(key, worksheet)) yield break;
 
-		private IEnumerator GettingPhotoTable(string key, string worksheet)
-		{
-			string url = BASE_URL + "sheet/" + key + "/" + worksheet + ".json";
-			Debug.Log(url);
-			using (UnityWebRequest www = UnityWebRequest.Get(url))
+			string api = BASE_URL + "clear/" + key + "/" + worksheet;
+			Debug.Log(api);
+			using (UnityWebRequest www = UnityWebRequest.Get(api))
 			{
 				yield return www.SendWebRequest();
 				while (!www.isDone) yield return null;
@@ -99,23 +107,40 @@ namespace MikanDealer
 					Debug.LogError(www.error);
 					yield break;
 				}
-				else
+
+				string[] lines = www.downloadHandler.text.Split('\n');
+				if (lines[0] != "OK" && lines.Length > 1)
 				{
-					string[] lines = www.downloadHandler.text.Split('\n');
-					if (lines[0] != "OK")
-					{
-						Debug.LogError(lines[1]);
-						yield break;
-					}
-					PhotoTable = new Dictionary<string, object>();
-					foreach (var o in Json.Deserialize(lines[1]) as List<object>)
-					{
-						Debug.Log(o);
-						var box = o as Dictionary<string, object>;
-						if (box.ContainsKey("name") && !string.IsNullOrEmpty((string)box["name"])) PhotoTable[(string)box["name"]] = box;
-					}
-					Debug.Log(lines[1]);
-					Debug.Log(PhotoTable);
+					Debug.LogError(lines[1]);
+					yield break;
+				}
+			}
+		}
+
+		private IEnumerator GettingPhotoTable(string key, string worksheet)
+		{
+			string api = BASE_URL + "sheet/" + key + "/" + worksheet + ".json";
+			using (UnityWebRequest www = UnityWebRequest.Get(api))
+			{
+				yield return www.SendWebRequest();
+				while (!www.isDone) yield return null;
+				if (www.isHttpError || www.isNetworkError)
+				{
+					Debug.LogError(www.error);
+					yield break;
+				}
+
+				string[] lines = www.downloadHandler.text.Split('\n');
+				if (lines[0] != "OK")
+				{
+					Debug.LogError(lines[1]);
+					yield break;
+				}
+				PhotoTable = new Dictionary<string, object>();
+				foreach (var o in Json.Deserialize(lines[1]) as List<object>)
+				{
+					var box = o as Dictionary<string, object>;
+					if (box.ContainsKey("name") && !string.IsNullOrEmpty((string)box["name"])) PhotoTable[(string)box["name"]] = box;
 				}
 			}
 		}

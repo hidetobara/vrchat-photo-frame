@@ -5,8 +5,8 @@
         _MainTex ("Texture", 2D) = "white" {}
         _ScaleX("ScaleX", Float) = 1.1
         _ScaleY("ScaleY", Float) = 1.1
-        _CellSize("Cell Size", Float) = 1.0
-        _Color("Color", Color) = (0.05, 0.05, 0.05, 1)
+        _CellSize("Cell Size", Float) = 30.0
+        _Color("Color", Color) = (0.5, 0.5, 0.5, 1)
     }
     SubShader
     {
@@ -57,7 +57,7 @@
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex = mul(UNITY_MATRIX_VP, mul(UNITY_MATRIX_M, v.vertex * float4(_ScaleX, _ScaleY, 1, 1)) - float4(v.normal * 0.01, 0));
+                o.vertex = mul(UNITY_MATRIX_VP, mul(UNITY_MATRIX_M, v.vertex * float4(_ScaleX, _ScaleY, 1, 1)) - float4(v.normal * 0.03, 0));
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 return o;
             }

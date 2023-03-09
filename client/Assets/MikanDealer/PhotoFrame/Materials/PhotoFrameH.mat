@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: PhotoFrameS
+  m_Name: PhotoFrameH
   m_Shader: {fileID: 4800000, guid: cd77ca5e0f9fb8547bbcf8042dd567fc, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
@@ -57,7 +57,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Floats:
     - _BumpScale: 1
-    - _CellSize: 90
+    - _CellSize: 30
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
@@ -68,7 +68,7 @@ Material:
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _ScaleX: 1.1
+    - _ScaleX: 1.075
     - _ScaleY: 1.1
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
@@ -76,5 +76,5 @@ Material:
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:
-    - _Color: {r: 0.124130465, g: 0.25490198, b: 0.07450981, a: 1}
+    - _Color: {r: 0.5566038, g: 0.257298, b: 0.257298, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
