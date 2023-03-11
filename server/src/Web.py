@@ -15,25 +15,12 @@ class Web:
 
     def __init__(self, config: Config):
         self.limits = config.get("limits", {})
+        self.seed = config.get("seed", "")
         self.key = None
         self.sheet = None
 
-    def get_base_context(self):
-        return {}
-
-    def get_locale(self):
-        locale = 'en'
-        try:
-            languages = request.headers.get('Accept-Language').split(',')
-            for language in languages:
-                locale_long = language.split(';')[0]
-                locale = locale_long.split('-')[0]
-                break
-            if locale not in ['ja', 'en']:
-                locale = 'en'
-            return locale.lower()
-        except:
-            return 'en'
+    def gen_hash(self, s):
+        return hashlib.md5((s + "|" + self.seed).encode("utf-8")).hexdigest()
 
     def get_index(self):
         context = self.get_base_context()
@@ -82,8 +69,8 @@ class Web:
             raise Exception("Invalid format")
         
     def download_img(self, worksheet: str, name: str):
-        sha_folder = hashlib.md5((self.sheet.owner).encode("utf-8")).hexdigest()
-        sha_name = hashlib.md5((worksheet + "/" + name).encode("utf-8")).hexdigest()
+        sha_folder = self.gen_hash(self.sheet.owner)
+        sha_name = self.gen_hash(worksheet + "/" + name)
 
         limit = self.get_limit(self.sheet.owner)
         tmp_dir = Web.TMP_DIR + sha_folder + "/"
@@ -121,6 +108,6 @@ class Web:
         return tmp_dir, sha_name + ext, MIMETYPES[ext]
     
     def clear_my_dir(self, worksheet: str):
-        sha_folder = hashlib.md5((self.sheet.owner).encode("utf-8")).hexdigest()
+        sha_folder = self.gen_hash(self.sheet.owner)
         tmp_dir = Web.TMP_DIR + sha_folder + "/"
         shutil.rmtree(tmp_dir, ignore_errors=True)

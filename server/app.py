@@ -47,10 +47,10 @@ def clear_my_dir(key, worksheet):
     except Exception as ex:
         return "FAIL\n" + str(ex), 404
 
-@app.route('/debug/ls', methods=['GET'])
-def debug_ls():
+@app.route('/debug/df', methods=['GET'])
+def debug_df():
     try:
-        cp = subprocess.run("ls /tmp/", capture_output=True)
+        cp = subprocess.run("df -h", capture_output=True)
         return "OK\n" + str(cp.stdout)
     except Exception as ex:
         return "FAIL\n" + str(ex), 404
