@@ -18,12 +18,22 @@ class Web:
         self.seed = config.get("seed", "")
         self.key = None
         self.sheet = None
+        self.is_logging = True
+
+    def testing(self):
+        self.is_logging = False
+        return self
+
+    def __del__(self):
+        if self.sheet is not None:
+            self.sheet.close()
+            self.sheet = None
 
     def gen_hash(self, s):
         return hashlib.md5((s + "|" + self.seed).encode("utf-8")).hexdigest()
 
     def get_index(self):
-        context = self.get_base_context()
+        context = {}
         return render_template('top.html', **context)
 
     def prepare(self, key: str):
@@ -49,7 +59,8 @@ class Web:
     def get_sheet(self, worksheet: str, format: str):
         table = self.sheet.load(worksheet)
         items = list(table.values())
-        print("KEY=", self.key, "OWNER=", self.sheet.owner)
+        if self.is_logging:
+            print("KEY=", self.key, "OWNER=", self.sheet.owner)
         
         limit = self.get_limit(self.sheet.owner)
         if len(items) > limit:
@@ -111,3 +122,4 @@ class Web:
         sha_folder = self.gen_hash(self.sheet.owner)
         tmp_dir = Web.TMP_DIR + sha_folder + "/"
         shutil.rmtree(tmp_dir, ignore_errors=True)
+        return True

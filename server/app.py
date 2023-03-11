@@ -9,10 +9,6 @@ app = Flask(__name__)
 c = Config("private/photoframe.json")
 web = Web(c)
 
-@app.context_processor
-def utility_processor():
-    return dict(get_locale=web.get_locale)
-
 @app.route('/', methods=['GET'])
 def get_index():
     return web.get_index()

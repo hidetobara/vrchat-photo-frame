@@ -28,6 +28,11 @@ class Sheet:
         self.key = key
         self.owner = self.selectOwner(credentials)
 
+    def close(self):
+        if self.gc is not None:
+            self.gc.session.close()
+            self.gc = None
+
     def selectOwner(self, credentials):
         gauth = GoogleAuth()
         gauth.auth_method = 'service'

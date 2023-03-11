@@ -1,0 +1,7 @@
+{
+    "seed": "hoge",
+    "limits": {
+        "fuga@gmail.com": 10,
+        "hoge@gmail.com": 1
+    }
+}
