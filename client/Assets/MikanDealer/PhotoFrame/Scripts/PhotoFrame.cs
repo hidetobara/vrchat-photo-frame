@@ -21,9 +21,10 @@ public class PhotoFrame : UdonSharpBehaviour
 			downloader.DownloadImage(Url, renderer.material, (IUdonEventReceiver)this);
 		}
 	}
-
+/*
 	override public void OnImageLoadSuccess(IVRCImageDownload download)
 	{
-		//Debug.Log(download.TextureInfo.FilterMode);
+		Debug.Log(download.Result);
 	}
+*/
 }

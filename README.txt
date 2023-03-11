@@ -1,5 +1,8 @@
 写真をスプレッドシートで管理できるようにします。
 
+# テスト
+python3 -W ignore:ImportWarning -m unittest tests/test_*
+
 # 構成
 ## server
 GCP Cloud Run を使用

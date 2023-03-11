@@ -20,26 +20,31 @@ namespace MikanDealer
 		private string BASE_URL = "https://photoframe-a3miq2wxma-an.a.run.app/";
 		private Dictionary<string, object> PhotoTable = null;
 
-
 		void OnEnable()
 		{
 			_Instance = target as PhotoFrameManager;
+			LoadEnv();
 		}
 
 		public override void OnInspectorGUI()
 		{
-			base.OnInspectorGUI();
+			//base.OnInspectorGUI();
 
-			EditorGUILayout.LabelField("スプレッドシートから読み込み");
+			EditorGUILayout.LabelField("Spread Sheet URL には、次のようなURLを入力 (例) https://docs.google.com/spreadsheets/d/hoge/");
+			EditorGUILayout.LabelField("Work Sheet には、スプレッドシートのタブの名前を入力");
+
+			_Instance.SpreadSheetUrl = EditorGUILayout.TextField("Spread Sheet Url", _Instance.SpreadSheetUrl);
+			_Instance.WorkSheet = EditorGUILayout.TextField("Work Sheet", _Instance.WorkSheet);
+
+			EditorGUILayout.LabelField("「更新＆仮表示」で、スプレッドシートから読み込み、画像を仮表示");
+			EditorGUILayout.LabelField("「クリア」で、仮表示を解除、ワールドビルドの前に必ず実行！");
 			using (new EditorGUILayout.HorizontalScope())
 			{
-				if (GUILayout.Button("更新＆お試し表示"))
+				if (GUILayout.Button("更新＆仮表示"))
 					EditorCoroutine.Start(UpdatingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
 				if (GUILayout.Button("クリア"))
 					EditorCoroutine.Start(ClearingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
-
 			}
-
 		}
 
 		private string GetSpreadSheetKey(string url)
@@ -47,7 +52,7 @@ namespace MikanDealer
 			Match match = Regex.Match(url, "https://docs.google.com/spreadsheets/d/([a-zA-Z0-9]+)/");
 			if (match.Success) return match.Groups[1].Value;
 
-			Debug.LogError("スプレッドシートのURLを入力してください\n例:https://docs.google.com/spreadsheets/d/hoge/");
+			Debug.LogError("スプレッドシートのURLを入力してください (例) https://docs.google.com/spreadsheets/d/hoge/");
 			return null;
 		}
 
@@ -199,6 +204,21 @@ namespace MikanDealer
 			if (renderer == null || renderer.sharedMaterial == null) return;
 
 			renderer.sharedMaterial.mainTexture = null;
+		}
+
+		private void LoadEnv()
+		{
+			string path = System.IO.Path.Combine(Application.dataPath, "MikanDealer/PhotoFrame/env.json");
+			Debug.Log(path);
+			if (System.IO.File.Exists(path))
+			{
+				var data = Json.Deserialize(System.IO.File.ReadAllText(path)) as Dictionary<string, object>;
+				if (!string.IsNullOrEmpty(data["BASE_URL"] as string))
+				{
+					BASE_URL = data["BASE_URL"] as string;
+					Debug.Log("BASE_URL is overwritten :" + BASE_URL);
+				}
+			}
 		}
 	}
 }
