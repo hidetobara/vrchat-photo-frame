@@ -1,5 +1,5 @@
 server/private/*
-
+server/tmp/*
 __pycache__
 
 *.log

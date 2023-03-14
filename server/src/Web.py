@@ -10,7 +10,7 @@ MIMETYPES = {".png": "image/png", ".jpg": "image/jpeg"}
 
 class Web:
 
-    TMP_DIR = "/tmp/"
+    TMP_DIR = "/app/tmp/"
     ITEM_LIMIT = 5
 
     def __init__(self, config: Config):
@@ -80,10 +80,13 @@ class Web:
             raise Exception("Invalid format")
         
     def download_img(self, worksheet: str, name: str):
-        sha_folder = self.gen_hash(self.sheet.owner)
-        sha_name = self.gen_hash(worksheet + "/" + name)
+        item = self.get_item(worksheet, name)
+        if item is None:
+            raise Exception(f"Not found {name}")
 
-        limit = self.get_limit(self.sheet.owner)
+        sha_folder = self.gen_hash(self.sheet.owner)
+        sha_name = self.gen_hash(worksheet + "/" + name + ":" + item.url)
+
         tmp_dir = Web.TMP_DIR + sha_folder + "/"
         os.makedirs(tmp_dir, exist_ok=True)
 
@@ -94,26 +97,29 @@ class Web:
                 ext = e
                 break
         if ext is None:
+            # キャッシュが存在しない場合
+            limit = self.get_limit(self.sheet.owner)
             files = glob.glob(tmp_dir + "*")
             if len(files) >= limit:
                 raise Exception("Limit of images")
-            item = self.get_item(worksheet, name)
-            if item is None:
-                raise Exception(f"Not found {name}")
             response = requests.get(item.url)
             response.raise_for_status()
             tmp_path = tmp_dir + sha_name
             with open(tmp_path, "wb") as f:
                 f.write(response.content)
-            with Image.open(tmp_path) as im:
-                if im.size[0] > 2048 or im.size[1] > 2048:
-                    raise Exception("Too big image")
-                if im.format == "PNG":
-                    ext = ".png"
-                if im.format == "JPEG":
-                    ext = ".jpg"
-            if ext is None:
-                raise Exception("Unknown format")
+            try:
+                with Image.open(tmp_path) as im:
+                    if im.size[0] > 2048 or im.size[1] > 2048:
+                        raise Exception("Too large image")
+                    if im.format == "PNG":
+                        ext = ".png"
+                    if im.format == "JPEG":
+                        ext = ".jpg"
+                    if ext is None:
+                        raise Exception("Unknown format")
+            except Exception as ex:
+                os.remove(tmp_path)
+                raise ex
             shutil.move(tmp_path, tmp_dir + sha_name + ext)
 
         return tmp_dir, sha_name + ext, MIMETYPES[ext]
