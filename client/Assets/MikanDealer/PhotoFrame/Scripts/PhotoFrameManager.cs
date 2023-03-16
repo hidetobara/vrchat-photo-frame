@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class PhotoFrameManager : MonoBehaviour
 {
+	[SerializeField]
 	public string SpreadSheetUrl;
+	[SerializeField]
 	public string WorkSheet;
 }

@@ -35,14 +35,14 @@
             struct v2f
             {
                 float4 vertex : SV_POSITION;
-                float2 uv : TEXCOORD0;
+                float2 uv : TEXCOORD1;
             };
 
         ENDCG
 
         Pass
         {
-            Cull Back
+            Cull Off
 
             CGPROGRAM
 
@@ -54,8 +54,13 @@
                 return o;
             }
 
-            fixed4 frag (v2f i) : SV_Target
+            fixed4 frag (v2f i, fixed facing : VFACE) : SV_Target
             {
+                if (facing < 0)
+                {
+                    return fixed4(_Color.xyz, 1);
+                }
+
                 if (0 <= i.uv.x && i.uv.x <= 1 && 0 <= i.uv.y && i.uv.y <= 1)
                 {
 #ifdef UNITY_UV_STARTS_AT_TOP

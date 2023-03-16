@@ -20,6 +20,22 @@ namespace MikanDealer
 		private string BASE_URL = "https://photoframe-a3miq2wxma-an.a.run.app/";
 		private Dictionary<string, object> PhotoTable = null;
 
+		void Awake()
+		{
+			EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+		}
+
+		private void OnPlayModeStateChanged(PlayModeStateChange state)
+		{
+			if (state == PlayModeStateChange.ExitingEditMode)
+			{
+				foreach (var frame in SelectPhotoFrames())
+				{
+					ClearTexture(frame);
+				}
+			}
+		}
+
 		void OnEnable()
 		{
 			_Instance = target as PhotoFrameManager;
@@ -36,14 +52,14 @@ namespace MikanDealer
 			_Instance.SpreadSheetUrl = EditorGUILayout.TextField("Spread Sheet Url", _Instance.SpreadSheetUrl);
 			_Instance.WorkSheet = EditorGUILayout.TextField("Work Sheet", _Instance.WorkSheet);
 
-			EditorGUILayout.LabelField("「更新＆仮表示」で、スプレッドシートから読み込み、画像を仮表示");
-			EditorGUILayout.LabelField("「クリア」で、仮表示を解除、ワールドビルドの前に必ず実行！");
+			EditorGUILayout.LabelField("「更新＆仮表示」で、スプレッドシートからURLの画像を読み込み仮表示");
+			EditorGUILayout.LabelField("「クリア」で、仮表示を解除、アップロードするワールドには画像を除きます。");
 			using (new EditorGUILayout.HorizontalScope())
 			{
 				if (GUILayout.Button("更新＆仮表示"))
 					EditorCoroutine.Start(UpdatingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
-				if (GUILayout.Button("クリア"))
-					EditorCoroutine.Start(ClearingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
+				//if (GUILayout.Button("クリア"))
+				//	EditorCoroutine.Start(ClearingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
 			}
 		}
 
@@ -71,19 +87,30 @@ namespace MikanDealer
 			string key = GetSpreadSheetKey(url);
 			if (string.IsNullOrEmpty(key) || !Validate(key, worksheet)) yield break;
 
-			EditorCoroutine.Start(GettingPhotoTable(key, worksheet));
-			int life = 0;
-			while(PhotoTable == null)
+			string api = BASE_URL + "sheet/" + key + "/" + worksheet + ".json";
+			using (UnityWebRequest www = UnityWebRequest.Get(api))
 			{
-				if (life > 1000) break;
-				yield return new WaitForSecondsRealtime(1f);
-				life++;
+				yield return www.SendWebRequest();
+				while (!www.isDone) yield return null;
+				if (www.isHttpError || www.isNetworkError)
+				{
+					Debug.LogError(www.error);
+					yield break;
+				}
+				string[] lines = www.downloadHandler.text.Split('\n');
+				if (lines[0] != "OK")
+				{
+					Debug.LogError("スプレッドシートからデータの読み込みに失敗しました\n" + lines[1]);
+					yield break;
+				}
+				PhotoTable = new Dictionary<string, object>();
+				foreach (var o in Json.Deserialize(lines[1]) as List<object>)
+				{
+					var box = o as Dictionary<string, object>;
+					if (box.ContainsKey("name") && !string.IsNullOrEmpty((string)box["name"])) PhotoTable[(string)box["name"]] = box;
+				}
 			}
-			if (PhotoTable == null)
-			{
-				Debug.LogError("スプレッドシートからデータの読み込みに失敗しました");
-				yield break;
-			}
+
 			foreach(var frame in SelectPhotoFrames())
 			{
 				EditorCoroutine.Start(AssigningWebTexture(frame));
@@ -122,36 +149,10 @@ namespace MikanDealer
 			}
 		}
 
-		private IEnumerator GettingPhotoTable(string key, string worksheet)
-		{
-			string api = BASE_URL + "sheet/" + key + "/" + worksheet + ".json";
-			using (UnityWebRequest www = UnityWebRequest.Get(api))
-			{
-				yield return www.SendWebRequest();
-				while (!www.isDone) yield return null;
-				if (www.isHttpError || www.isNetworkError)
-				{
-					Debug.LogError(www.error);
-					yield break;
-				}
-
-				string[] lines = www.downloadHandler.text.Split('\n');
-				if (lines[0] != "OK")
-				{
-					Debug.LogError(lines[1]);
-					yield break;
-				}
-				PhotoTable = new Dictionary<string, object>();
-				foreach (var o in Json.Deserialize(lines[1]) as List<object>)
-				{
-					var box = o as Dictionary<string, object>;
-					if (box.ContainsKey("name") && !string.IsNullOrEmpty((string)box["name"])) PhotoTable[(string)box["name"]] = box;
-				}
-			}
-		}
-
 		private PhotoFrame[] SelectPhotoFrames()
 		{
+			if (_Instance == null) return new PhotoFrame[] { };
+
 			var frames = _Instance.transform.GetComponentsInChildren<PhotoFrame>();
 			foreach (var frame in frames)
 			{
@@ -199,7 +200,6 @@ namespace MikanDealer
 
 		private void ClearTexture(PhotoFrame frame)
 		{
-			frame.Url = null;
 			Renderer renderer = frame.GetComponent<Renderer>();
 			if (renderer == null || renderer.sharedMaterial == null) return;
 
@@ -209,7 +209,6 @@ namespace MikanDealer
 		private void LoadEnv()
 		{
 			string path = System.IO.Path.Combine(Application.dataPath, "MikanDealer/PhotoFrame/env.json");
-			Debug.Log(path);
 			if (System.IO.File.Exists(path))
 			{
 				var data = Json.Deserialize(System.IO.File.ReadAllText(path)) as Dictionary<string, object>;
