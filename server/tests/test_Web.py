@@ -41,6 +41,15 @@ class TestWeb(unittest.TestCase):
         with self.assertRaises(Exception):
             o = web.prepare(self.KEY).download_img("aaaaa", "orchid")
 
+    def test_get_sheet(self):
+        c = Config("tests/data/hello.json")
+        web = Web(c).testing()
+
+        res = web.prepare(self.KEY).get_sheet("test", "json")
+        obj = json.loads(res)
+        self.assertEqual(2, len(obj))
+        self.assertEqual("", obj[1]["title"])
+
     def test_clear(self):
         c = Config("tests/data/hello.json")
         web = Web(c).testing()

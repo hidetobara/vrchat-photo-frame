@@ -70,7 +70,7 @@ namespace MikanDealer
 
 		private string GetSpreadSheetKey(string url)
 		{
-			Match match = Regex.Match(url, "https://docs.google.com/spreadsheets/d/([a-zA-Z0-9]+)/");
+			Match match = Regex.Match(url, "https://docs.google.com/spreadsheets/d/([a-zA-Z0-9_-]+)/");
 			if (match.Success) return match.Groups[1].Value;
 
 			Debug.LogError("スプレッドシートのURLを入力してください (例) https://docs.google.com/spreadsheets/d/hoge/");
@@ -93,6 +93,7 @@ namespace MikanDealer
 			if (string.IsNullOrEmpty(key) || !Validate(key, worksheet)) yield break;
 
 			string api = BASE_URL + "sheet/" + key + "/" + worksheet + ".json";
+			Debug.Log(api);
 			using (UnityWebRequest www = UnityWebRequest.Get(api))
 			{
 				yield return www.SendWebRequest();

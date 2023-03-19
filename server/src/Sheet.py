@@ -6,13 +6,15 @@ from pydrive2.drive import GoogleDrive
 
 
 class Item:
-    def __init__(self, name, url, title) -> None:
-        self.name = name
-        self.url = url
-        self.title = title
+    def __init__(self, row: list) -> None:
+        self.name = row[0] if len(row) > 0 else None
+        self.url = row[1] if len(row) > 1 else None
+        self.title = row[2] if len(row) > 2 else None
 
     def is_valid(self):
-        return len(self.name) > 0 and len(self.url) > 0 and self.url.startswith("https://")
+        if len(self.name) == 0 or len(self.url) == 0:
+            return False
+        return self.url.startswith("https://") or self.url.startswith("http://")
 
     def to_csv(self):
         return [self.name, self.url, self.title]
@@ -48,7 +50,7 @@ class Sheet:
         worksheet = self.gc.open_by_key(self.key).worksheet(worksheet)
         table = {}
         for row in worksheet.get_all_values():
-            i = Item(row[0], row[1], row[2])
+            i = Item(row)
             if not i.is_valid(): continue
 
             table[i.name] = i
