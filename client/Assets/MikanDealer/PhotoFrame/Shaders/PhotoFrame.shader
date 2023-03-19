@@ -5,7 +5,6 @@
         _MainTex ("Texture", 2D) = "white" {}
         _ScaleX("ScaleX", Float) = 1.1
         _ScaleY("ScaleY", Float) = 1.1
-        _CellSize("Cell Size", Float) = 30.0
         _Color("Color", Color) = (0.5, 0.5, 0.5, 1)
     }
     SubShader
@@ -23,7 +22,6 @@
             float4 _MainTex_ST;
             float _ScaleX;
             float _ScaleY;
-            float _CellSize;
             float4 _Color;
 
             struct appdata

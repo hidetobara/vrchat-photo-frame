@@ -46,20 +46,25 @@ namespace MikanDealer
 		{
 			//base.OnInspectorGUI();
 
-			EditorGUILayout.LabelField("Spread Sheet URL には、次のようなURLを入力 (例) https://docs.google.com/spreadsheets/d/hoge/");
-			EditorGUILayout.LabelField("Work Sheet には、スプレッドシートのタブの名前を入力");
+			GUIStyle style = new GUIStyle(GUI.skin.label);
+			style.wordWrap = true;
+
+			EditorGUILayout.LabelField("Spread Sheet URL には、次のようなURLを入力 (例) https://docs.google.com/spreadsheets/d/hoge/", style);
+			EditorGUILayout.LabelField("Work Sheet には、スプレッドシートのタブの名前を入力", style);
 
 			_Instance.SpreadSheetUrl = EditorGUILayout.TextField("Spread Sheet Url", _Instance.SpreadSheetUrl);
 			_Instance.WorkSheet = EditorGUILayout.TextField("Work Sheet", _Instance.WorkSheet);
 
-			EditorGUILayout.LabelField("「更新＆仮表示」で、スプレッドシートからURLの画像を読み込み仮表示");
-			EditorGUILayout.LabelField("「クリア」で、仮表示を解除、アップロードするワールドには画像を除きます。");
-			using (new EditorGUILayout.HorizontalScope())
+			EditorGUILayout.LabelField("「仮表示」で、スプレッドシートからURLの画像を読み込み仮表示", style);
+			if (GUILayout.Button("仮表示"))
 			{
-				if (GUILayout.Button("更新＆仮表示"))
-					EditorCoroutine.Start(UpdatingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
-				//if (GUILayout.Button("クリア"))
-				//	EditorCoroutine.Start(ClearingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
+				EditorCoroutine.Start(UpdatingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
+			}
+			EditorGUILayout.LabelField("●アップロードするワールドに画像を含めたい場合は、このままワールドのビルドを行ってください。Webからの画像の読み込みが終わり次第、最新の画像に変わります。", style);
+			EditorGUILayout.LabelField("●アップロードするワールドに画像を含めたくない場合は、以下の「クリア」を押してください。ワールド容量を軽くできますが、Webからの画像読み込みが終わるまでは表示されません。", style);
+			if (GUILayout.Button("クリア"))
+			{
+				EditorCoroutine.Start(ClearingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
 			}
 		}
 
@@ -192,8 +197,10 @@ namespace MikanDealer
 				else
 				{
 					Material copied = new Material(renderer.sharedMaterial);
-					copied.mainTexture = ((DownloadHandlerTexture)www.downloadHandler).texture;
+					Texture2D tex = ((DownloadHandlerTexture)www.downloadHandler).texture;
+					copied.mainTexture = tex;
 					renderer.sharedMaterial = copied;
+					if (frame.AutoAdjust) frame.AdjustTexture(tex);
 				}
 			}
 		}

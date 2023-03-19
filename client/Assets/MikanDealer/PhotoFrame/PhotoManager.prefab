@@ -105,6 +105,7 @@ MonoBehaviour:
   _udonSharpBackingUdonBehaviour: {fileID: 784664848}
   Name: orchid
   AutoAdjust: 1
+  FrameWidth: 0.1
   Url:
     url: https://pbs.twimg.com/media/Fq7KskrakAAdtWj?format=jpg
 --- !u!114 &784664848
