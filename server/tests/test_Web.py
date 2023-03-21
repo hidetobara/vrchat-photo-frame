@@ -25,7 +25,7 @@ class TestWeb(unittest.TestCase):
         web = Web(c).testing()
 
         items = json.loads(web.prepare(self.KEY).get_sheet("test", "json"))
-        self.assertTrue("name" in items[0])
+        self.assertTrue("id" in items[0])
         self.assertTrue("url" in items[0])
         self.assertTrue("title" in items[0])
 

@@ -49,10 +49,10 @@ class Web:
             return self.limits[owner]
         return Web.ITEM_LIMIT
 
-    def get_item(self, worksheet: str, name: str):
+    def get_item(self, worksheet: str, id: str):
         table = self.sheet.load(worksheet)
         for value in table.values():
-            if value.name == name:
+            if value.id == id:
                 return value
         return None
 
@@ -62,9 +62,10 @@ class Web:
         if self.is_logging:
             print("KEY=", self.key, "OWNER=", self.sheet.owner)
         
-        limit = self.get_limit(self.sheet.owner)
-        if len(items) > limit:
-            items = items[0:limit]
+        # ここでは不要か
+        #limit = self.get_limit(self.sheet.owner)
+        #if len(items) > limit:
+        #    items = items[0:limit]
 
         if format == "csv":
             lines = []
@@ -79,13 +80,13 @@ class Web:
         else:
             raise Exception("Invalid format")
         
-    def download_img(self, worksheet: str, name: str):
-        item = self.get_item(worksheet, name)
+    def download_img(self, worksheet: str, id: str):
+        item = self.get_item(worksheet, id)
         if item is None:
-            raise Exception(f"Not found {name}")
+            raise Exception(f"Not found {id}")
 
         sha_folder = self.gen_hash(self.sheet.owner)
-        sha_name = self.gen_hash(worksheet + "/" + name + ":" + item.url)
+        sha_name = self.gen_hash(worksheet + "/" + id + ":" + item.url)
 
         tmp_dir = Web.TMP_DIR + sha_folder + "/"
         os.makedirs(tmp_dir, exist_ok=True)

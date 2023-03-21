@@ -7,24 +7,29 @@ from pydrive2.drive import GoogleDrive
 
 class Item:
     def __init__(self, row: list) -> None:
-        self.name = row[0] if len(row) > 0 else None
+        self.id = row[0] if len(row) > 0 else None
         self.url = row[1] if len(row) > 1 else None
         self.title = row[2] if len(row) > 2 else None
 
     def is_valid(self):
-        if len(self.name) == 0 or len(self.url) == 0:
+        if len(self.id) == 0 or len(self.url) == 0:
             return False
         return self.url.startswith("https://") or self.url.startswith("http://")
 
     def to_csv(self):
-        return [self.name, self.url, self.title]
+        return [self.id, self.url, self.title]
     def to_json(self):
-        return {"name": self.name, "url": self.url, "title": self.title}
+        return {"id": self.id, "url": self.url, "title": self.title}
 
 class Sheet:
     def __init__(self, key):
+        """
+        権限
+        https://developers.google.com/drive/api/v3/reference/permissions/list
+        """
         scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive.readonly']
+                 'https://www.googleapis.com/auth/drive']
+        
         credentials = ServiceAccountCredentials.from_json_keyfile_name('./private/vrchat-analyzer-ba2bcb1497e6.json', scope)
         self.gc = gspread.authorize(credentials)
         self.key = key
@@ -53,6 +58,6 @@ class Sheet:
             i = Item(row)
             if not i.is_valid(): continue
 
-            table[i.name] = i
+            table[i.id] = i
         return table
 
