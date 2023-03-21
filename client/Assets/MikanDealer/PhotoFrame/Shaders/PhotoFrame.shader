@@ -6,6 +6,7 @@
         _ScaleX("ScaleX", Float) = 1.1
         _ScaleY("ScaleY", Float) = 1.1
         _Color("Color", Color) = (0.5, 0.5, 0.5, 1)
+        _Progress("Progress", Float) = 1
     }
     SubShader
     {
@@ -23,6 +24,7 @@
             float _ScaleX;
             float _ScaleY;
             float4 _Color;
+            float _Progress;
 
             struct appdata
             {
@@ -61,6 +63,18 @@
 
                 if (0 <= i.uv.x && i.uv.x <= 1 && 0 <= i.uv.y && i.uv.y <= 1)
                 {
+                    if (_Progress < 1)
+                    {
+                        float2 lxy = i.uv - 0.5;
+                        float ltheta = atan2(lxy.x, lxy.y);
+                        float ldis = length(lxy);
+                        if (0.2 > ldis || ldis > 0.25) discard;
+
+                        float p = pow(sin(-_Time.y * 2 + ltheta) * 0.5 + 0.5, 4);
+                        if(p < 0.003) discard;
+                        return fixed4(_Color.xyz, 1);
+                    }
+
 #ifdef UNITY_UV_STARTS_AT_TOP
                     return tex2D(_MainTex, i.uv);
 #else

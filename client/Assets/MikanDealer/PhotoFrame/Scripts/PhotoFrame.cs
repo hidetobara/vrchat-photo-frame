@@ -8,7 +8,7 @@ using VRC.Udon.Common.Interfaces;
 
 public class PhotoFrame : UdonSharpBehaviour
 {
-	public string Name;
+	public string ID;
 	public bool AutoAdjust = true;
 	public float FrameWidth = 0.1f;
 	[HideInInspector]
@@ -17,9 +17,10 @@ public class PhotoFrame : UdonSharpBehaviour
 	void Start()
 	{
 		var renderer = GetComponent<MeshRenderer>();
-		if (renderer != null && !string.IsNullOrEmpty(Url.Get()) && renderer.material != null)
+		if (renderer != null && !string.IsNullOrEmpty(Url.Get()) && renderer.sharedMaterial != null)
 		{
 			var downloader = new VRCImageDownloader();
+			if (renderer.sharedMaterial.mainTexture == null) renderer.sharedMaterial.SetFloat("_Progress", 0);
 			downloader.DownloadImage(Url, renderer.sharedMaterial, (IUdonEventReceiver)this);
 		}
 	}
@@ -29,6 +30,15 @@ public class PhotoFrame : UdonSharpBehaviour
 		if (AutoAdjust && download.Result != null)
 		{
 			AdjustTexture(download.Result);
+		}
+	}
+
+	public void AssignLoading()
+	{
+		var renderer = GetComponent<MeshRenderer>();
+		if (renderer != null && renderer.sharedMaterial != null && renderer.sharedMaterial.mainTexture == null)
+		{
+			renderer.sharedMaterial.SetFloat("_Progress", 0);
 		}
 	}
 
@@ -53,6 +63,7 @@ public class PhotoFrame : UdonSharpBehaviour
 		var renderer = GetComponent<MeshRenderer>();
 		if (renderer != null)
 		{
+			renderer.sharedMaterial.SetFloat("_Progress", 1);
 			renderer.sharedMaterial.SetFloat("_ScaleX", 1 + scale.y * FrameWidth);
 			renderer.sharedMaterial.SetFloat("_ScaleY", 1 + scale.x * FrameWidth);
 		}
