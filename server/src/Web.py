@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, send_from_directory, redirect
 from PIL import Image
 
 from src.Config import Config
-from src.Sheet import Sheet
+from src.Drive import Item, Drive, Sheet
 
 
 MIMETYPES = {".png": "image/png", ".jpg": "image/jpeg"}
@@ -39,7 +39,7 @@ class Web:
     def prepare(self, key: str):
         self.key = key
         if self.sheet is None:
-            self.sheet = Sheet(key)
+            self.sheet = Sheet(key).prepare()
         if self.sheet.owner is None:
             raise Exception("This sheet has No owner")
         return self
@@ -51,9 +51,8 @@ class Web:
 
     def get_item(self, worksheet: str, id: str):
         table = self.sheet.load(worksheet)
-        for value in table.values():
-            if value.id == id:
-                return value
+        if id in table:
+            return table[id]
         return None
 
     def get_sheet(self, worksheet: str, format: str):
@@ -61,11 +60,6 @@ class Web:
         items = list(table.values())
         if self.is_logging:
             print("KEY=", self.key, "OWNER=", self.sheet.owner)
-        
-        # ここでは不要か
-        #limit = self.get_limit(self.sheet.owner)
-        #if len(items) > limit:
-        #    items = items[0:limit]
 
         if format == "csv":
             lines = []
@@ -103,11 +97,8 @@ class Web:
             files = glob.glob(tmp_dir + "*")
             if len(files) >= limit:
                 raise Exception("Limit of images")
-            response = requests.get(item.url)
-            response.raise_for_status()
             tmp_path = tmp_dir + sha_name
-            with open(tmp_path, "wb") as f:
-                f.write(response.content)
+            self.download_from_origin(item, tmp_path)
             try:
                 with Image.open(tmp_path) as im:
                     if im.size[0] > 2048 or im.size[1] > 2048:
@@ -125,6 +116,20 @@ class Web:
 
         return tmp_dir, sha_name + ext, MIMETYPES[ext]
     
+    def download_from_origin(self, item: Item, path):
+        if item.get_drive_key():
+            d = Drive(item.get_drive_key()).prepare()
+            d.download(path)
+            return
+        if item.get_photos_key():
+            raise Exception("Not supported Photos")
+        
+        response = requests.get(item.url)
+        response.raise_for_status()
+        with open(path, "wb") as f:
+            f.write(response.content)
+
+
     def clear_my_dir(self, worksheet: str):
         sha_folder = self.gen_hash(self.sheet.owner)
         tmp_dir = Web.TMP_DIR + sha_folder + "/"

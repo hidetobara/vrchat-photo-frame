@@ -1,4 +1,4 @@
-import os, sys, subprocess
+import os, sys, subprocess, traceback
 from flask import Flask, render_template, request, send_from_directory, redirect, jsonify
 
 from src.Config import Config
@@ -33,6 +33,7 @@ def download_img(key, worksheet, id):
         tmp_dir, filename, mime = web.prepare(key).download_img(worksheet, id)
         return send_from_directory(tmp_dir, filename, mimetype=mime)
     except Exception as ex:
+        traceback.format_exc()
         return "FAIL\n" + str(ex), 404
 
 @app.route('/clear/<key>/<worksheet>', methods=['GET'])

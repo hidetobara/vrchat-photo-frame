@@ -5,7 +5,7 @@ RUN apt update -y && apt upgrade -y && apt -y install python3-pip vim supervisor
 	&& apt clean
 RUN pip3 install flask gunicorn
 RUN pip3 install gspread oauth2client Pillow PyDrive2
-
+#RUN pip3 install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
 
 ENV APP_HOME /app 
 WORKDIR $APP_HOME

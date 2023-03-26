@@ -47,7 +47,7 @@ class TestWeb(unittest.TestCase):
 
         res = web.prepare(self.KEY).get_sheet("test", "json")
         obj = json.loads(res)
-        self.assertEqual(2, len(obj))
+        self.assertEqual(3, len(obj))
         self.assertEqual("", obj[1]["title"])
 
     def test_clear(self):
