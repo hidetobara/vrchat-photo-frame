@@ -7,6 +7,10 @@ from pydrive2.drive import GoogleDrive
 
 
 class Item:
+    G_DRIVE = "G_DRIVE"
+    G_PHOTOS = "G_PHOTOS"
+    UNKNOWN = "UNKNOWN"
+
     def __init__(self, row: list) -> None:
         self.id = row[0] if len(row) > 0 else None
         self.url = row[1] if len(row) > 1 else None
@@ -17,26 +21,31 @@ class Item:
             return False
         return self.url.startswith("https://") or self.url.startswith("http://")
 
+    def get_type(self):
+        if self.get_drive_key():
+            return self.G_DRIVE
+        if self.get_photos_key():
+            return self.G_PHOTOS
+        return self.UNKNOWN
+
     def get_drive_key(self):
-        if self.url is None:
-            return None
+        if self.url is None: return None
         m = re.match(r"https://drive\.google\.com/file/d/([\w_-]+)", self.url)
         if m:
             return m.group(1)
         return None
 
     def get_photos_key(self):
-        if self.url is None:
-            return None
+        if self.url is None: return None
         m = re.match(r"https://photos\.app\.goo\.gl/([\w_-]+)", self.url)
         if m:
             return m.group(1)
         return None
 
     def to_csv(self) -> list:
-        return [self.id, self.url, self.title]
+        return [self.id, self.url, self.title, self.get_type()]
     def to_json(self) -> dict:
-        return {"id": self.id, "url": self.url, "title": self.title}
+        return {"id": self.id, "url": self.url, "title": self.title, "type": self.get_type()}
 
 class Drive:
     """
