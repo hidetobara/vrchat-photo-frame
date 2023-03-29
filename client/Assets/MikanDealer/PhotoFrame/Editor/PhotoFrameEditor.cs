@@ -187,7 +187,7 @@ namespace MikanDealer
 			foreach(var frame in SelectPhotoFrames())
 			{
 				EditorCoroutine.Start(AssigningWebTexture(frame));
-				yield return new WaitForSecondsRealtime(1f);
+				yield return new WaitForSecondsRealtime(5f); // うまく動いてない？
 			}
 		}
 
