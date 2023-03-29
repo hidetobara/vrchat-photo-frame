@@ -2,6 +2,7 @@
 using UnityEngine;
 using VRC.SDKBase;
 
+using System;
 using UnityEditor;
 using UnityEngine.Networking;
 using System.Collections;
@@ -9,16 +10,68 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEditor.PackageManager;
 using System.Security.Policy;
+using UnityScript.Steps;
+using System.Security.Permissions;
 
 namespace MikanDealer
 {
+	public class PhotoSheet
+	{
+		public string EndPointUrl;
+		public string SheetKey;
+		public string Worksheet;
+	}
+
+	public class PhotoItem
+	{
+		public enum TYPE { UNKNOWN, G_DRIVE, G_PHOTOS }
+
+		public PhotoSheet Sheet;
+		public string Url;
+		public string ID;
+		public string Title;
+		public TYPE Type = TYPE.UNKNOWN;
+
+		public string GenerateImgUrl()
+		{
+			if (Type == TYPE.G_PHOTOS) return null;
+			if (Type == TYPE.G_DRIVE) return Sheet.EndPointUrl + "img/" + Sheet.SheetKey + "/" + Sheet.Worksheet + "/" + ID;
+			return Url;
+		}
+
+		public static PhotoItem Parse(PhotoSheet sheet, Dictionary<string, object> o)
+		{
+			if (o == null) return null;
+
+			PhotoItem i = new PhotoItem() { Sheet = sheet };
+			try
+			{
+				if (o.ContainsKey("url")) i.Url = (string)o["url"];
+				if (o.ContainsKey("id")) i.ID = (string)o["id"];
+				if (o.ContainsKey("title")) i.Title = (string)o["title"];
+				if (o.ContainsKey("type"))
+				{
+					if ((string)o["type"] == TYPE.G_PHOTOS.ToString()) i.Type = TYPE.G_PHOTOS;
+					if ((string)o["type"] == TYPE.G_DRIVE.ToString()) i.Type = TYPE.G_DRIVE;
+				}
+				return i;
+			}
+			catch(Exception ex)
+			{
+				Debug.LogException(ex);
+				return null;
+			}
+		}
+	}
+
 	[CustomEditor(typeof(PhotoFrameManager))]
 	public class MonoBehaviourModelEditor : Editor
 	{
 		PhotoFrameManager _Instance = null;
 
 		private string BASE_URL = "https://photoframe-a3miq2wxma-an.a.run.app/";
-		private Dictionary<string, object> PhotoTable = null;
+		private PhotoSheet CurrentSheet = null;
+		private Dictionary<string, PhotoItem> PhotoTable = null;
 
 		void Awake()
 		{
@@ -123,11 +176,11 @@ namespace MikanDealer
 					Debug.LogError("スプレッドシートからデータの読み込みに失敗しました\n" + lines[1]);
 					yield break;
 				}
-				PhotoTable = new Dictionary<string, object>();
+				PhotoTable = new Dictionary<string, PhotoItem>();
 				foreach (var o in Json.Deserialize(lines[1]) as List<object>)
 				{
-					var box = o as Dictionary<string, object>;
-					if (box.ContainsKey("id") && !string.IsNullOrEmpty((string)box["id"])) PhotoTable[(string)box["id"]] = box;
+					var item = PhotoItem.Parse(CurrentSheet, o as Dictionary<string, object>);
+					if (item != null) PhotoTable[item.ID] = item;
 				}
 			}
 
@@ -185,8 +238,7 @@ namespace MikanDealer
 		{
 			if (PhotoTable.ContainsKey(frame.ID))
 			{
-				var box = PhotoTable[frame.ID] as Dictionary<string, object>;
-				frame.Url = new VRCUrl(box["url"] as string);
+				frame.Url = new VRCUrl(PhotoTable[frame.ID].GenerateImgUrl());
 			}
 			else
 			{
@@ -239,6 +291,13 @@ namespace MikanDealer
 					Debug.Log("BASE_URL is overwritten :" + BASE_URL);
 				}
 			}
+
+			CurrentSheet = new PhotoSheet()
+			{
+				EndPointUrl = BASE_URL.EndsWith("/") ? BASE_URL : BASE_URL + "/",
+				SheetKey = GetSpreadSheetKey(_Instance.SpreadSheetUrl),
+				Worksheet = _Instance.WorkSheet
+			};
 		}
 	}
 }
