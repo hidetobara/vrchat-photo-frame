@@ -9,6 +9,13 @@ app = Flask(__name__)
 c = Config("private/photoframe.json")
 web = Web(c)
 
+@app.after_request
+def set_response_headers(response):
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
 @app.route('/', methods=['GET'])
 def get_index():
     return web.get_index()
@@ -33,7 +40,6 @@ def download_img(key, worksheet, id):
         tmp_dir, filename, mime = web.prepare(key).download_img(worksheet, id)
         return send_from_directory(tmp_dir, filename, mimetype=mime)
     except Exception as ex:
-        traceback.format_exc()
         return "FAIL\n" + str(ex), 404
 
 @app.route('/clear/<key>/<worksheet>', methods=['GET'])
