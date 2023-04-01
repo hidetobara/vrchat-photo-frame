@@ -266,7 +266,10 @@ namespace MikanDealer
 					Texture2D tex = ((DownloadHandlerTexture)www.downloadHandler).texture;
 					copied.mainTexture = tex;
 					renderer.sharedMaterial = copied;
-					if (frame.AutoAdjust) frame.AdjustTexture(tex);
+					if (frame.AutoAdjustAspect)
+						frame.AdjustTexture(tex, 2);
+					else
+						frame.DoneTexture(tex, 2);
 				}
 			}
 		}
