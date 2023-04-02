@@ -121,6 +121,7 @@ namespace MikanDealer
 			EditorGUILayout.LabelField("4. 「仮表示」で、スプレッドシートからURLの画像を読み込み仮表示", style);
 			if (GUILayout.Button("仮表示"))
 			{
+				LoadSheet();
 				EditorCoroutine.Start(UpdatingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
 			}
 			EditorGUILayout.LabelField("");
@@ -130,6 +131,7 @@ namespace MikanDealer
 			EditorGUILayout.LabelField("●アップロードするワールドに画像を含めたくない場合は、以下の「クリア」を押してください。ワールド容量を軽くできますが、Webからの画像読み込みが終わるまでは表示されません。", style);
 			if (GUILayout.Button("クリア"))
 			{
+				LoadSheet();
 				EditorCoroutine.Start(ClearingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
 			}
 		}
@@ -294,7 +296,10 @@ namespace MikanDealer
 					Debug.Log("BASE_URL is overwritten :" + BASE_URL);
 				}
 			}
+		}
 
+		private void LoadSheet()
+		{
 			CurrentSheet = new PhotoSheet()
 			{
 				EndPointUrl = BASE_URL.EndsWith("/") ? BASE_URL : BASE_URL + "/",
