@@ -88,13 +88,17 @@ class Sheet(Drive):
             self.gc.session.close()
             self.gc = None
 
-    def load(self, worksheet) -> dict:
-        worksheet = self.gc.open_by_key(self.key).worksheet(worksheet)
+    def load(self, title) -> dict:
+        sheet = self.gc.open_by_key(self.key)
+        target = sheet.sheet1
+        for w in sheet.worksheets():
+            if w.title == title:
+                target = w
+                break
         table = {}
-        for row in worksheet.get_all_values():
+        for row in target.get_all_values():
             i = Item(row)
             if not i.is_valid(): continue
-
             table[i.id] = i
         return table
 

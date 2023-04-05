@@ -32,6 +32,7 @@ def get_sheet_json(key, worksheet):
     try:
         return "OK\n" + web.prepare(key).get_sheet(worksheet, "json")
     except Exception as ex:
+        print("ERROR", ex, traceback.format_exc())
         return "FAIL\n" + str(ex), 404
 
 @app.route('/img/<key>/<worksheet>/<id>', methods=['GET'])
@@ -40,6 +41,7 @@ def download_img(key, worksheet, id):
         tmp_dir, filename, mime = web.prepare(key).download_img(worksheet, id)
         return send_from_directory(tmp_dir, filename, mimetype=mime)
     except Exception as ex:
+        print("ERROR", ex, traceback.format_exc())
         return "FAIL\n" + str(ex), 404
 
 @app.route('/clear/<key>/<worksheet>', methods=['GET'])
