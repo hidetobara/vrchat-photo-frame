@@ -26,27 +26,29 @@ namespace MikanDealer
 	{
 		public enum TYPE { UNKNOWN, G_DRIVE, G_PHOTOS }
 
-		public PhotoSheet Sheet;
 		public string Url;
+		public string SrcUrl;
 		public string ID;
 		public string Title;
 		public TYPE Type = TYPE.UNKNOWN;
 
-		public string GenerateImgUrl()
+		private PhotoItem() { }
+
+		public static PhotoItem Parse(PhotoSheet sheet, string id)
 		{
-			if (Type == TYPE.G_PHOTOS) return null;
-			if (Type == TYPE.G_DRIVE) return Sheet.EndPointUrl + "img/" + Sheet.SheetKey + "/" + Sheet.Worksheet + "/" + ID;
-			return Url;
+			PhotoItem i = new PhotoItem() { ID = id };
+			i.Url = sheet.EndPointUrl + "img/" + sheet.SheetKey + "/" + sheet.Worksheet + "/" + i.ID;
+			return i;
 		}
 
 		public static PhotoItem Parse(PhotoSheet sheet, Dictionary<string, object> o)
 		{
 			if (o == null) return null;
 
-			PhotoItem i = new PhotoItem() { Sheet = sheet };
+			PhotoItem i = new PhotoItem();
 			try
 			{
-				if (o.ContainsKey("url")) i.Url = (string)o["url"];
+				if (o.ContainsKey("url")) i.SrcUrl = (string)o["url"];
 				if (o.ContainsKey("id")) i.ID = (string)o["id"];
 				if (o.ContainsKey("title")) i.Title = (string)o["title"];
 				if (o.ContainsKey("type"))
@@ -54,6 +56,7 @@ namespace MikanDealer
 					if ((string)o["type"] == TYPE.G_PHOTOS.ToString()) i.Type = TYPE.G_PHOTOS;
 					if ((string)o["type"] == TYPE.G_DRIVE.ToString()) i.Type = TYPE.G_DRIVE;
 				}
+				i.Url = sheet.EndPointUrl + "img/" + sheet.SheetKey + "/" + sheet.Worksheet + "/" + i.ID;
 				return i;
 			}
 			catch(Exception ex)
@@ -118,8 +121,8 @@ namespace MikanDealer
 			EditorGUILayout.LabelField("Photo Frame Manager は、この子オブジェクトだけの画像を管理します", style);
 			EditorGUILayout.LabelField("");
 
-			EditorGUILayout.LabelField("4. 「仮表示」で、スプレッドシートからURLの画像を読み込み仮表示", style);
-			if (GUILayout.Button("仮表示"))
+			EditorGUILayout.LabelField("4. 「設定！」で、スプレッドシートからURLの画像を読み込み仮表示", style);
+			if (GUILayout.Button("設定！"))
 			{
 				LoadSheet();
 				EditorCoroutine.Start(UpdatingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
@@ -189,7 +192,13 @@ namespace MikanDealer
 			foreach(var frame in SelectPhotoFrames())
 			{
 				EditorCoroutine.Start(AssigningWebTexture(frame));
-				yield return new WaitForSecondsRealtime(5f); // うまく動いてない？
+
+				float timeElapsed = 0;
+				while (timeElapsed > 5)
+				{
+					timeElapsed += Time.unscaledDeltaTime;
+					yield return null;
+				}
 			}
 		}
 
@@ -231,36 +240,34 @@ namespace MikanDealer
 			var frames = _Instance.transform.GetComponentsInChildren<PhotoFrame>();
 			foreach (var frame in frames)
 			{
-				if (string.IsNullOrEmpty(frame.ID)) frame.ID = frame.gameObject.name;
+				if (string.IsNullOrEmpty(frame.ID)) continue;
 			}
 			return frames;
 		}
 
 		private IEnumerator AssigningWebTexture(PhotoFrame frame)
 		{
+			PhotoItem item;
 			if (PhotoTable.ContainsKey(frame.ID))
 			{
-				frame.Url = new VRCUrl(PhotoTable[frame.ID].GenerateImgUrl());
+				item = PhotoTable[frame.ID];
 			}
 			else
 			{
-				frame.Url = null;
-				yield break;
+				item = PhotoItem.Parse(CurrentSheet, frame.ID);
 			}
-
-			string url = frame.Url.Get();
-			if (url == null) yield break;
+			frame.Url = new VRCUrl(item.Url);
 
 			Renderer renderer = frame.GetComponent<Renderer>();
 			if (renderer == null || renderer.sharedMaterial == null) yield break;
 
-			using (UnityWebRequest www = UnityWebRequestTexture.GetTexture(url))
+			using (UnityWebRequest www = UnityWebRequestTexture.GetTexture(frame.Url.Get()))
 			{
 				yield return www.SendWebRequest();
 				while (!www.isDone) yield return null;
 				if (www.isHttpError || www.isNetworkError)
 				{
-					Debug.LogError("Image URL: " + url + "\n" + www.error);
+					Debug.LogError("Image URL: " + frame.Url.Get() + "\n" + www.error);
 				}
 				else
 				{

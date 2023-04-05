@@ -23,7 +23,7 @@ namespace MikanDealer
 		public bool AutoAdjustAspect = true;
 		public float FrameWidth = 0.1f;
 		public LOADING_TYPE LoadingType = LOADING_TYPE.GURUGURU;
-		[HideInInspector]
+		//[HideInInspector]
 		public VRCUrl Url;
 
 		void Start()

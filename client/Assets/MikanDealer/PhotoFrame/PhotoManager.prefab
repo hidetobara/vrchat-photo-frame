@@ -104,10 +104,11 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 731157525}
   ID: more
-  AutoAdjust: 1
+  AutoAdjustAspect: 1
   FrameWidth: 0.1
+  LoadingType: 0
   Url:
-    url: https://pbs.twimg.com/media/FfbpxTPagAECvwv?format=jpg
+    url: 
 --- !u!114 &731157525
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -238,10 +239,11 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 784664848}
   ID: orchid
-  AutoAdjust: 1
+  AutoAdjustAspect: 1
   FrameWidth: 0.1
+  LoadingType: 0
   Url:
-    url: https://pbs.twimg.com/media/Fq7KskrakAAdtWj?format=jpg
+    url: 
 --- !u!114 &784664848
 MonoBehaviour:
   m_ObjectHideFlags: 0
