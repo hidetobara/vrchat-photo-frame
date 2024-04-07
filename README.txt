@@ -7,6 +7,10 @@ python3 -W ignore:ImportWarning -m unittest tests/test_*
 ## server
 GCP Cloud Run を使用
 
+# Push Image
+Set-ExecutionPolicy RemoteSigned -Scope Process
+
+
 ## client
 unitypackage でのインポート
 

@@ -1,5 +1,5 @@
 ﻿
-FROM python:3.10
+FROM python:3.11-slim
 
 RUN apt update -y && apt upgrade -y && apt -y install python3-pip vim supervisor less \
 	&& apt clean
@@ -16,3 +16,7 @@ CMD exec gunicorn --bind :8080 --workers 1 app:app
 # docker build -t gcr.io/vrchat-analyzer/photoframe .
 # docker run --rm -it -p 8080:8080 -v c:/obara/vrchat_photoframe/server:/app gcr.io/vrchat-analyzer/photoframe /bin/bash
 # docker image push gcr.io/vrchat-analyzer/photoframe
+
+# docker build -t photo-frame-cache .
+# docker tag photo-frame-cache asia-northeast1-docker.pkg.dev/vrchat-photo-frame/server/photo-frame-cache
+# docker image push asia-northeast1-docker.pkg.dev/vrchat-photo-frame/server/photo-frame-cache

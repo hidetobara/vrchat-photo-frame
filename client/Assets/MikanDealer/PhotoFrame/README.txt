@@ -6,12 +6,16 @@ Dyanamic Photo Frame では、Google Spread Sheet 上で管理した画像リン
 
 # 使い方
 ## Google Spread Sheet 上
-ワークシート hoge を作ります。
+ワークシート1つ(スプレッドシート下部のタブ)を作り、名前をアルファベットで付けます。
 1列目にID(アルファベットと数字、アンダーバー)を、2列目に画像への URL を入力してください。
 3列目以降は参照しないので、コメントなどを記述して問題ありません。
 
 共有ボタンを押し、「リンクを知っている人全員」「閲覧者」にしてください。
 そのリンクをメモします。
+
+## Google Drive 内の画像
+Google ドライブ上で、対象となる画像に対し、共有ボタンを押し、「リンクを知っている人全員」「閲覧者」にして、URLを取得します。
+その URL を、他の画像の時と同様に、ワークシートの2列目に入力します。
 
 # Unity 上
 Dynamic Photo Frame の Unity packaege をインポートします。
@@ -19,7 +23,7 @@ Dynamic Photo Frame の Unity packaege をインポートします。
 PhotoManager の prefab をワールド内に設置し、unpack します。
 PhotoManager のインスペクターで、
 Spread Sheet URL に、リンクを入力します。
-Work Sheet は、ワークシート名(スプレッドシート下部のタブ)を入力します。
+Work Sheet は、ワークシート名を入力します。
 
 PhotoManager の子オブジェクト PhotoFrame のインスペクターの ID に
 スプレッドシート1列目に入力した同じものを入力します。

@@ -1,6 +1,7 @@
 server/private/*
 server/tmp/*
 __pycache__
+Published
 
 *.log
 *.out

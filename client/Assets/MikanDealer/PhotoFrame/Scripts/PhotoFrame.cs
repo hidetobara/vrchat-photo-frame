@@ -25,6 +25,7 @@ namespace MikanDealer
 		public LOADING_TYPE LoadingType = LOADING_TYPE.GURUGURU;
 		//[HideInInspector]
 		public VRCUrl Url;
+		private int Retry = 0;
 
 		void Start()
 		{
@@ -38,6 +39,7 @@ namespace MikanDealer
 					renderer.sharedMaterial.SetFloat("_Progress", 0);
 				}
 				downloader.DownloadImage(Url, renderer.sharedMaterial, (IUdonEventReceiver)this);
+				Retry += 1;
 			}
 		}
 
@@ -51,6 +53,18 @@ namespace MikanDealer
 			{
 				DoneTexture(download.Result, 1);
 			}
+		}
+
+		override public void OnImageLoadError(IVRCImageDownload download)
+		{
+			if (download.Error != VRCImageDownloadError.DownloadError && download.Error == VRCImageDownloadError.Unknown) return;
+			if (Retry >= 2) return;
+
+			var renderer = GetComponent<MeshRenderer>();
+			if (renderer == null) return;
+			var downloader = new VRCImageDownloader();
+			downloader.DownloadImage(Url, renderer.sharedMaterial, (IUdonEventReceiver)this);
+			Retry += 1;
 		}
 
 		public void AssignLoading()

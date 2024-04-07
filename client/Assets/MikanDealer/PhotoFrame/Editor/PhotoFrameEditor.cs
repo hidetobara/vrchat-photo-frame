@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEditor.PackageManager;
 using System.Security.Policy;
-using UnityScript.Steps;
 using System.Security.Permissions;
 
 namespace MikanDealer
@@ -72,7 +71,7 @@ namespace MikanDealer
 	{
 		PhotoFrameManager _Instance = null;
 
-		private string BASE_URL = "https://photoframe-a3miq2wxma-an.a.run.app/";
+		private string BASE_URL = "https://photo-frame-cache-ow7nx6wgvq-an.a.run.app/";
 		private PhotoSheet CurrentSheet = null;
 		private Dictionary<string, PhotoItem> PhotoTable = null;
 
