@@ -72,7 +72,7 @@ class Web:
                 box.append(item.to_json())
             return json.dumps(box, ensure_ascii=False)
         else:
-            raise Exception("Invalid format")
+            return items
         
     def download_img(self, worksheet: str, id: str):
         item = self.get_item(worksheet, id)

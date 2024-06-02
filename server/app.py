@@ -3,11 +3,12 @@ from flask import Flask, render_template, request, send_from_directory, redirect
 
 from src.Config import Config
 from src.Web import Web
+from src.BucketImage import BucketImage
 
 
 app = Flask(__name__)
-c = Config("private/photoframe.json")
-web = Web(c)
+web = Web(Config("private/photoframe.json"))
+bucket = BucketImage(Config("private/cloudflare.json"))
 
 @app.after_request
 def set_response_headers(response):
@@ -52,6 +53,17 @@ def clear_my_dir(key, worksheet):
     except Exception as ex:
         return "FAIL\n" + str(ex), 404
 
+@app.route('/cache/<key>/<worksheet>', methods=['GET'])
+def cache_images(key, worksheet):
+    items = web.prepare(key).get_sheet(worksheet, None)
+    for item in items:
+        tmp_dir, filename, _ = web.download_img(worksheet, item.id)
+        print("UPLOADING=", item.id)
+        with open(tmp_dir + "/" + filename, mode="rb") as f:
+            bucket.upload(key, worksheet, item.id, f)
+    return "OK"
+
+
 @app.route('/debug/ls', methods=['GET'])
 def debug_ls():
     try:
@@ -69,4 +81,4 @@ def debug_df():
         return "FAIL\n" + str(ex), 404
 
 if __name__ == "__main__":
-    app.run(debug=True,host='0.0.0.0',port=8080)
+    app.run(debug=True, host='0.0.0.0', port=8080)
