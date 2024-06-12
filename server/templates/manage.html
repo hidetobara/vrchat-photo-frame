@@ -1,0 +1,19 @@
+<html>
+<head>
+    <title>Manage</title>
+</head>
+<body>
+    <p>WORKSHEET: {{ worksheet }}' images</p>
+    <table boder="1">
+        <tr><td>ID</td><td>Title</td><td>Origin</td><td>Current</td></tr>
+        {% for item in items -%}
+        <tr>
+            <td>{{ item["id"] }}</td>
+            <td>{{ item["title"] }}</td>
+            <td><a href="{{ item['url'] }}"> {{ item['url'] }} </a></td>
+            <td></td>
+        </tr>
+        {% endfor -%}
+    </table>
+</body>
+</html>

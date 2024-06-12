@@ -1,3 +1,4 @@
+import hashlib
 import boto3
 from src.Config import Config
 
@@ -11,11 +12,18 @@ class BucketImage:
             aws_access_key_id = c.get("access_key_id"),
             aws_secret_access_key = c.get("secret_access_key"),
             region_name="auto")
-        
-    def upload(self, key, worksheet, id, bytes):
-        path = f"{key}/{worksheet}/{id}"
+        self.SEED = c.get("seed", "HOGE")
+    
+    def get_workdir(self, key, worksheet) -> str:
+        return hashlib.md5(key + self.SEED + worksheet)
+
+    def upload(self, key, worksheet, id, bytes) -> str:
+        workdir = self.get_workdir(key, worksheet)
+        path = f"images/{workdir}/{id}"
         self.s3.upload_fileobj(bytes, self.BUCKET_NAME, path)
+        return workdir
 
     def delete(self, key, worksheet, id):
-        path = f"{key}/{worksheet}/{id}"
+        workdir = self.get_workdir(key, worksheet)
+        path = f"images/{workdir}/{id}"
         self.s3.delete_object(self.BUCKET_NAME, path)

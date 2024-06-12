@@ -8,7 +8,6 @@ from src.BucketImage import BucketImage
 
 app = Flask(__name__)
 web = Web(Config("private/photoframe.json"))
-bucket = BucketImage(Config("private/cloudflare.json"))
 
 @app.after_request
 def set_response_headers(response):
@@ -19,7 +18,7 @@ def set_response_headers(response):
 
 @app.route('/', methods=['GET'])
 def get_index():
-    return web.get_index()
+    return web.view_index()
 
 @app.route('/sheet/<key>/<worksheet>.csv', methods=['GET'])
 def get_sheet_csv(key, worksheet):
@@ -53,17 +52,20 @@ def clear_my_dir(key, worksheet):
     except Exception as ex:
         return "FAIL\n" + str(ex), 404
 
-@app.route('/cache/<key>/<worksheet>', methods=['GET'])
-def cache_images(key, worksheet):
+##### 管理 #####
+@app.route('/manage/<key>/<worksheet>', methods=['GET'])
+def manage_images(key, worksheet):
+    action = request.args.get("action")
+    format = request.args.get("format")
     items = web.prepare(key).get_sheet(worksheet, None)
-    for item in items:
-        tmp_dir, filename, _ = web.download_img(worksheet, item.id)
-        print("UPLOADING=", item.id)
-        with open(tmp_dir + "/" + filename, mode="rb") as f:
-            bucket.upload(key, worksheet, item.id, f)
-    return "OK"
+    if action == "update":
+        web.update_bucket(key, worksheet, items)
+    if format == "json":
+        return [item.to_dict() for item in items]
 
+    return web.view_manage(worksheet, items)
 
+##### デバッグ #####
 @app.route('/debug/ls', methods=['GET'])
 def debug_ls():
     try:

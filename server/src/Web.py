@@ -4,7 +4,7 @@ from PIL import Image
 
 from src.Config import Config
 from src.Drive import Item, Drive, Sheet
-
+from src.BucketImage import BucketImage
 
 MIMETYPES = {".png": "image/png", ".jpg": "image/jpeg"}
 
@@ -19,6 +19,7 @@ class Web:
         self.key = None
         self.sheet = None
         self.is_logging = True
+        self.bucket = BucketImage(Config("private/cloudflare.json"))
 
     def testing(self):
         self.is_logging = False
@@ -32,9 +33,13 @@ class Web:
     def gen_hash(self, s):
         return hashlib.md5((s + "|" + self.seed).encode("utf-8")).hexdigest()
 
-    def get_index(self):
+    def view_index(self):
         context = {}
         return render_template('top.html', **context)
+    
+    def view_manage(self, worksheet, items):
+        context = {"worksheet": worksheet, "items": items}
+        return render_template('manage.html', **context)
 
     def prepare(self, key: str):
         self.key = key
@@ -69,7 +74,7 @@ class Web:
         elif format == "json":
             box = []
             for item in items:
-                box.append(item.to_json())
+                box.append(item.to_dict())
             return json.dumps(box, ensure_ascii=False)
         else:
             return items
@@ -129,9 +134,14 @@ class Web:
         with open(path, "wb") as f:
             f.write(response.content)
 
-
     def clear_my_dir(self, worksheet: str):
         sha_folder = self.gen_hash(self.sheet.owner)
         tmp_dir = Web.TMP_DIR + sha_folder + "/"
         shutil.rmtree(tmp_dir, ignore_errors=True)
         return True
+
+    def update_bucket(self, key: str, worksheet: str, items):
+        for item in items:
+            tmp_dir, filename, _ = self.download_img(worksheet, item.id)
+            with open(tmp_dir + "/" + filename, mode="rb") as f:
+                self.bucket.upload(key, worksheet, item.id, f)

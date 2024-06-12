@@ -44,7 +44,7 @@ class Item:
 
     def to_csv(self) -> list:
         return [self.id, self.url, self.title, self.get_type()]
-    def to_json(self) -> dict:
+    def to_dict(self) -> dict:
         return {"id": self.id, "url": self.url, "title": self.title, "type": self.get_type()}
 
 class Drive:
