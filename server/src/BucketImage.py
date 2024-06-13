@@ -15,7 +15,8 @@ class BucketImage:
         self.SEED = c.get("seed", "HOGE")
     
     def get_workdir(self, key, worksheet) -> str:
-        return hashlib.md5(key + self.SEED + worksheet)
+        s = (key + self.SEED + worksheet).encode("utf-8")
+        return hashlib.md5(s).hexdigest()
 
     def upload(self, key, worksheet, id, bytes) -> str:
         workdir = self.get_workdir(key, worksheet)

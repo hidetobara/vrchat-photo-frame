@@ -53,17 +53,20 @@ def clear_my_dir(key, worksheet):
         return "FAIL\n" + str(ex), 404
 
 ##### 管理 #####
-@app.route('/manage/<key>/<worksheet>', methods=['GET'])
+@app.route('/manage/<key>/<worksheet>/', methods=['GET'])
 def manage_images(key, worksheet):
     action = request.args.get("action")
     format = request.args.get("format")
+
+    message = None
     items = web.prepare(key).get_sheet(worksheet, None)
     if action == "update":
-        web.update_bucket(key, worksheet, items)
+        web.update_bucket(worksheet, items)
+        message = "更新しました"
     if format == "json":
         return [item.to_dict() for item in items]
 
-    return web.view_manage(worksheet, items)
+    return web.view_manage(worksheet, items, message=message)
 
 ##### デバッグ #####
 @app.route('/debug/ls', methods=['GET'])

@@ -15,6 +15,7 @@ class Item:
         self.id = row[0] if len(row) > 0 else None
         self.url = row[1] if len(row) > 1 else None
         self.title = row[2] if len(row) > 2 else None
+        self.public_url = None
 
     def is_valid(self) -> bool:
         if len(self.id) == 0 or len(self.url) == 0:
@@ -43,9 +44,15 @@ class Item:
         return None
 
     def to_csv(self) -> list:
-        return [self.id, self.url, self.title, self.get_type()]
+        return [self.id, self.url, self.title, self.get_type(), self.public_url]
     def to_dict(self) -> dict:
-        return {"id": self.id, "url": self.url, "title": self.title, "type": self.get_type()}
+        return {
+            "id": self.id,
+            "url": self.url,
+            "title": self.title,
+            "type": self.get_type(),
+            "public": self.public_url
+        }
 
 class Drive:
     """

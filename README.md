@@ -19,7 +19,8 @@ unitypackage でのインポート
 http://localhost:8080/sheet/1HdYaxkIsX88SFNo3ZrFgHlH4gpzfHBY2e4sAwniANR0/main.json
 http://localhost:8080/img/1HdYaxkIsX88SFNo3ZrFgHlH4gpzfHBY2e4sAwniANR0/main/maid1
 http://localhost:8080/sheet/1dENv8A6z6ca7cS3mN02w-Xxrq8CRNxm6zIezb5J8PW8/default.json
-http://localhost:8080/manage/1dENv8A6z6ca7cS3mN02w-Xxrq8CRNxm6zIezb5J8PW8/default.html
+
+http://localhost:8080/manage/1dENv8A6z6ca7cS3mN02w-Xxrq8CRNxm6zIezb5J8PW8/default/
 
 ## 本番
 https://photoframe-a3miq2wxma-an.a.run.app/img/1HdYaxkIsX88SFNo3ZrFgHlH4gpzfHBY2e4sAwniANR0/main/maid1

@@ -4,16 +4,26 @@
 </head>
 <body>
     <p>WORKSHEET: {{ worksheet }}' images</p>
-    <table boder="1">
-        <tr><td>ID</td><td>Title</td><td>Origin</td><td>Current</td></tr>
+    <p>
+        {% if message -%}
+            {{ message }}
+        {% endif -%}
+    </p>
+    <table border="1">
+        <tr><td>ID</td><td>Title</td><td>Origin</td><td>Public</td></tr>
         {% for item in items -%}
         <tr>
             <td>{{ item["id"] }}</td>
             <td>{{ item["title"] }}</td>
             <td><a href="{{ item['url'] }}"> {{ item['url'] }} </a></td>
-            <td></td>
+            <td><img src="{{ item['public_url'] }}" width="256" /></td>
         </tr>
         {% endfor -%}
     </table>
+
+    <form action="./" method="get">
+        <input type="hidden" name="action" value="update" />
+        <input type="submit" value="更新" />
+    </form>
 </body>
 </html>

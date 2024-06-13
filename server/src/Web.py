@@ -9,9 +9,9 @@ from src.BucketImage import BucketImage
 MIMETYPES = {".png": "image/png", ".jpg": "image/jpeg"}
 
 class Web:
-
     TMP_DIR = "/app/tmp/"
     ITEM_LIMIT = 5
+    PUBLIC_DOMAIN = "https://pub-59fd11b0badf4635b95134214ef000ab.r2.dev"
 
     def __init__(self, config: Config):
         self.limits = config.get("limits", {})
@@ -37,8 +37,8 @@ class Web:
         context = {}
         return render_template('top.html', **context)
     
-    def view_manage(self, worksheet, items):
-        context = {"worksheet": worksheet, "items": items}
+    def view_manage(self, worksheet, items, message=None):
+        context = {"worksheet": worksheet, "items": items, "message": message}
         return render_template('manage.html', **context)
 
     def prepare(self, key: str):
@@ -63,6 +63,10 @@ class Web:
     def get_sheet(self, worksheet: str, format: str):
         table = self.sheet.load(worksheet)
         items = list(table.values())
+        workdir = self.bucket.get_workdir(self.key, worksheet)
+        for item in items:
+            item.public_url = f"{self.PUBLIC_DOMAIN}/images/{workdir}/{item.id}"
+
         if self.is_logging:
             print("KEY=", self.key, "OWNER=", self.sheet.owner)
 
@@ -140,8 +144,8 @@ class Web:
         shutil.rmtree(tmp_dir, ignore_errors=True)
         return True
 
-    def update_bucket(self, key: str, worksheet: str, items):
+    def update_bucket(self, worksheet: str, items):
         for item in items:
             tmp_dir, filename, _ = self.download_img(worksheet, item.id)
             with open(tmp_dir + "/" + filename, mode="rb") as f:
-                self.bucket.upload(key, worksheet, item.id, f)
+                self.bucket.upload(self.key, worksheet, item.id, f)
