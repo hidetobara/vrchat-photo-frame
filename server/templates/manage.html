@@ -10,20 +10,33 @@
         {% endif -%}
     </p>
     <table border="1">
+        <tr><td>Directory</td><td>Count</td></tr>
+        <tr><td>Owner</td><td>{{ count_owner_objects }}</td></tr>
+    </table>
+    <br />
+    <table border="1">
         <tr><td>ID</td><td>Title</td><td>Origin</td><td>Public</td></tr>
         {% for item in items -%}
         <tr>
             <td>{{ item["id"] }}</td>
             <td>{{ item["title"] }}</td>
             <td><a href="{{ item['url'] }}"> {{ item['url'] }} </a></td>
-            <td><img src="{{ item['public_url'] }}" width="256" /></td>
+            <td><img src="{{ item['public_url'] }}" height="128"/></td>
+            <td>
+                <form action="/upload/{{ key }}/{{ worksheet }}/{{ item['id'] }}" method="get">
+                    <input type="hidden" name="goto" value="manage" />
+                    <input type="submit" value="更新" />
+                </form>
+            </td>
+            <td>
+                <form action="/delete/{{ key }}/{{ worksheet }}/{{ item['id'] }}" method="get">
+                    <input type="hidden" name="goto" value="manage" />
+                    <input type="submit" value="削除" />
+                </form>
+            </td>
         </tr>
         {% endfor -%}
     </table>
 
-    <form action="./" method="get">
-        <input type="hidden" name="action" value="update" />
-        <input type="submit" value="更新" />
-    </form>
 </body>
 </html>

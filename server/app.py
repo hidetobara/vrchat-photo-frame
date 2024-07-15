@@ -1,4 +1,4 @@
-import os, sys, subprocess, traceback
+import os, sys, subprocess, traceback, json
 from flask import Flask, render_template, request, send_from_directory, redirect, jsonify
 
 from src.Config import Config
@@ -20,20 +20,13 @@ def set_response_headers(response):
 def get_index():
     return web.view_index()
 
-@app.route('/sheet/<key>/<worksheet>.csv', methods=['GET'])
-def get_sheet_csv(key, worksheet):
-    try:
-        return "OK\n" + web.prepare(key).get_sheet(worksheet, "csv")
-    except Exception as ex:
-        return "FAIL\n" + str(ex), 404
-
 @app.route('/sheet/<key>/<worksheet>.json', methods=['GET'])
 def get_sheet_json(key, worksheet):
     try:
-        return "OK\n" + web.prepare(key).get_sheet(worksheet, "json")
+        return web.prepare(key).get_sheet_json(worksheet)
     except Exception as ex:
         print("ERROR", ex, traceback.format_exc())
-        return "FAIL\n" + str(ex), 404
+        return json.dumps({"status": "FAIL", "reason": str(ex)})
 
 @app.route('/img/<key>/<worksheet>/<id>', methods=['GET'])
 def download_img(key, worksheet, id):
@@ -44,29 +37,42 @@ def download_img(key, worksheet, id):
         print("ERROR", ex, traceback.format_exc())
         return "FAIL\n" + str(ex), 404
 
-@app.route('/clear/<key>/<worksheet>', methods=['GET'])
-def clear_my_dir(key, worksheet):
+@app.route('/delete/<key>/<worksheet>', methods=['GET'])
+def delete_work_objects(key, worksheet):
     try:
-        web.prepare(key).clear_my_dir(worksheet)
+        web.prepare(key).delete_work_objects(worksheet)
         return "OK"
     except Exception as ex:
+        return "FAIL\n" + str(ex), 404
+
+@app.route('/delete/<key>/<worksheet>/<id>', methods=['GET'])
+def delete_object(key, worksheet, id):
+    try:
+        web.prepare(key).delete_object(worksheet, id)
+        if url := web.goto(worksheet):
+            return url
+        return "OK"
+    except Exception as ex:
+        raise(ex)
+        return "FAIL\n" + str(ex), 404
+
+@app.route('/upload/<key>/<worksheet>/<id>', methods=['GET'])
+def upload_object(key, worksheet, id):
+    try:
+        web.prepare(key).upload_object(worksheet, id)
+        if url := web.goto(worksheet):
+            return url
+        return "OK"
+    except Exception as ex:
+        raise(ex)
         return "FAIL\n" + str(ex), 404
 
 ##### 管理 #####
 @app.route('/manage/<key>/<worksheet>/', methods=['GET'])
 def manage_images(key, worksheet):
-    action = request.args.get("action")
-    format = request.args.get("format")
-
-    message = None
-    items = web.prepare(key).get_sheet(worksheet, None)
-    if action == "update":
-        web.update_bucket(worksheet, items)
-        message = "更新しました"
-    if format == "json":
-        return [item.to_dict() for item in items]
-
-    return web.view_manage(worksheet, items, message=message)
+    message = request.args.get("message")
+    items = web.prepare(key).get_sheet(worksheet)
+    return web.view_manage(key, worksheet, items, message=message)
 
 ##### デバッグ #####
 @app.route('/debug/ls', methods=['GET'])

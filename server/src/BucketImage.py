@@ -6,25 +6,50 @@ class BucketImage:
     BUCKET_NAME = "vphotoframe"
 
     def __init__(self, c: Config):
-        self.s3 = boto3.client(
+        self.client = boto3.client(
             service_name ="s3",
             endpoint_url = c.get("endpoint"),
             aws_access_key_id = c.get("access_key_id"),
             aws_secret_access_key = c.get("secret_access_key"),
             region_name="auto")
         self.SEED = c.get("seed", "HOGE")
+
+    def _gen_hash(self, s: str) -> str:
+        return hashlib.md5(s.encode("utf-8")).hexdigest()
     
-    def get_workdir(self, key, worksheet) -> str:
-        s = (key + self.SEED + worksheet).encode("utf-8")
-        return hashlib.md5(s).hexdigest()
+    def get_owner_dir(self, owner) -> str:
+        return self._gen_hash(owner + self.SEED)
+    def get_key_dir(self, key, worksheet) -> str:
+        return self._gen_hash(key + self.SEED + worksheet)
+    def get_work_dir(self, owner, key, worksheet) -> str:
+        return "/".join([self.get_owner_dir(owner),
+                        self.get_key_dir(key, worksheet)])
 
-    def upload(self, key, worksheet, id, bytes) -> str:
-        workdir = self.get_workdir(key, worksheet)
+    def count_owner_objects(self, owner):
+        prefix = "images/" + self.get_owner_dir(owner) + "/"
+        response = self.client.list_objects_v2(Bucket=self.BUCKET_NAME, Prefix=prefix)
+        if 'Contents' not in response:
+            return 0
+        return len(response['Contents'])
+    def count_work_objects(self, owner, key, worksheet):
+        prefix = "images/" + self.get_work_dir(owner, key, worksheet) + "/"
+        response = self.client.list_objects_v2(Bucket=self.BUCKET_NAME, Prefix=prefix)
+        if 'Contents' not in response:
+            return 0
+        return len(response['Contents'])    
+
+    def delete_work_objects(self, owner, key, worksheet):
+        prefix = "images/" + self.get_work_dir(owner, key, worksheet) + "/"
+        response = self.client.list_objects_v2(Bucket=self.BUCKET_NAME, Prefix=prefix)
+        for c in response['Contents']:
+            self.client.delete_object(self.BUCKET_NAME, c['Key'])
+    def delete_object(self, owner, key, worksheet, id):
+        workdir = self.get_work_dir(owner, key, worksheet)
         path = f"images/{workdir}/{id}"
-        self.s3.upload_fileobj(bytes, self.BUCKET_NAME, path)
+        self.client.delete_object(Bucket=self.BUCKET_NAME, Key=path)
+
+    def upload(self, owner, key, worksheet, id, bytes) -> str:
+        workdir = self.get_work_dir(owner, key, worksheet)
+        path = f"images/{workdir}/{id}"
+        self.client.upload_fileobj(Fileobj=bytes, Bucket=self.BUCKET_NAME, Key=path)
         return workdir
-
-    def delete(self, key, worksheet, id):
-        workdir = self.get_workdir(key, worksheet)
-        path = f"images/{workdir}/{id}"
-        self.s3.delete_object(self.BUCKET_NAME, path)

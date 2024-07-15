@@ -30,6 +30,10 @@ class Web:
             self.sheet.close()
             self.sheet = None
 
+    @property
+    def owner(self):
+        return self.sheet.owner
+
     def gen_hash(self, s):
         return hashlib.md5((s + "|" + self.seed).encode("utf-8")).hexdigest()
 
@@ -37,8 +41,14 @@ class Web:
         context = {}
         return render_template('top.html', **context)
     
-    def view_manage(self, worksheet, items, message=None):
-        context = {"worksheet": worksheet, "items": items, "message": message}
+    def view_manage(self, key, worksheet, items, message=None):
+        context = {
+            "key": key,
+            "worksheet": worksheet,
+            "items": items,
+            "count_owner_objects": self.bucket.count_owner_objects(self.owner),
+            "message": message,
+        }
         return render_template('manage.html', **context)
 
     def prepare(self, key: str):
@@ -60,35 +70,36 @@ class Web:
             return table[id]
         return None
 
-    def get_sheet(self, worksheet: str, format: str):
+    def get_sheet(self, worksheet: str):
+        if self.is_logging:
+            print("KEY=", self.key, "OWNER=", self.owner)
         table = self.sheet.load(worksheet)
         items = list(table.values())
-        workdir = self.bucket.get_workdir(self.key, worksheet)
+        workdir = self.bucket.get_work_dir(self.owner, self.key, worksheet)
         for item in items:
             item.public_url = f"{self.PUBLIC_DOMAIN}/images/{workdir}/{item.id}"
+        return items
 
-        if self.is_logging:
-            print("KEY=", self.key, "OWNER=", self.sheet.owner)
-
-        if format == "csv":
-            lines = []
-            for item in items:
-                lines.append(",".join(item.to_csv()))
-            return "\n".join(lines)
-        elif format == "json":
-            box = []
-            for item in items:
-                box.append(item.to_dict())
-            return json.dumps(box, ensure_ascii=False)
-        else:
-            return items
+    def get_sheet_csv(self, worksheet: str):
+        items = self.get_sheet(worksheet)
+        lines = []
+        for item in items:
+            lines.append(",".join(item.to_csv()))
+        return "\n".join(lines)
+    
+    def get_sheet_json(self, worksheet: str):
+        items = self.get_sheet(worksheet)
+        box = []
+        for item in items:
+            box.append(item.to_dict())
+        return json.dumps({"status":"OK", "items": box}, ensure_ascii=False)
         
     def download_img(self, worksheet: str, id: str):
         item = self.get_item(worksheet, id)
         if item is None:
             raise Exception(f"Not found {id}")
 
-        sha_folder = self.gen_hash(self.sheet.owner)
+        sha_folder = self.gen_hash(self.owner)
         sha_name = self.gen_hash(worksheet + "/" + id + ":" + item.url)
 
         tmp_dir = Web.TMP_DIR + sha_folder + "/"
@@ -102,10 +113,6 @@ class Web:
                 break
         if ext is None:
             # キャッシュが存在しない場合
-            limit = self.get_limit(self.sheet.owner)
-            files = glob.glob(tmp_dir + "*")
-            if len(files) >= limit:
-                raise Exception("Limit of images")
             tmp_path = tmp_dir + sha_name
             self.download_from_origin(item, tmp_path)
             try:
@@ -138,14 +145,23 @@ class Web:
         with open(path, "wb") as f:
             f.write(response.content)
 
-    def clear_my_dir(self, worksheet: str):
-        sha_folder = self.gen_hash(self.sheet.owner)
-        tmp_dir = Web.TMP_DIR + sha_folder + "/"
-        shutil.rmtree(tmp_dir, ignore_errors=True)
+    def delete_work_objects(self, worksheet: str):
+        self.bucket.delete_work_objects(self.owner, self.key, worksheet)
+    
+    def delete_object(self, worksheet: str, id: str):
+        self.bucket.delete_object(self.owner, self.key, worksheet, id)
+
+    def upload_object(self, worksheet: str, id :str):
+        item = self.get_item(worksheet, id)
+        if not item:
+            return False
+        tmp_dir, filename, _ = self.download_img(worksheet, item.id)
+        with open(tmp_dir + "/" + filename, mode="rb") as f:
+            self.bucket.upload(self.owner, self.key, worksheet, item.id, f)
         return True
 
-    def update_bucket(self, worksheet: str, items):
-        for item in items:
-            tmp_dir, filename, _ = self.download_img(worksheet, item.id)
-            with open(tmp_dir + "/" + filename, mode="rb") as f:
-                self.bucket.upload(self.key, worksheet, item.id, f)
+    def goto(self, worksheet: str):
+        goto = request.args.get("goto")
+        if goto:
+            return redirect(f"/manage/{self.key}/{worksheet}")
+        return None
