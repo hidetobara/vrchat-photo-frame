@@ -281,7 +281,7 @@ GameObject:
   - component: {fileID: 1130223051667365425}
   - component: {fileID: 113071680788731149}
   m_Layer: 0
-  m_Name: PhotoManager
+  m_Name: SyncManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -25,7 +25,7 @@ PhotoManager のインスペクターで、
 Spread Sheet URL に、リンクを入力します。
 Work Sheet は、ワークシート名を入力します。
 
-PhotoManager の子オブジェクト PhotoFrame のインスペクターの ID に
+PhotoManager の子オブジェクト SyncFrame のインスペクターの ID に
 スプレッドシート1列目に入力した同じものを入力します。
 
 PhotoManager のインスペクターに戻り、「仮表示」を押してください。

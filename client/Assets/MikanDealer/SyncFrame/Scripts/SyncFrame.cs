@@ -16,7 +16,7 @@ namespace MikanDealer
 		MOSIC = 1
 	}
 
-	public class PhotoFrame : UdonSharpBehaviour
+	public class SyncFrame : UdonSharpBehaviour
 	{
 
 		public string ID;

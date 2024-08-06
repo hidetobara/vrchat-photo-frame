@@ -14,7 +14,7 @@ using System.Security.Permissions;
 
 namespace MikanDealer
 {
-	public class PhotoSheet
+	public class FrameSheet
 	{
 		public string EndPointUrl;
 		public string SheetKey;
@@ -25,7 +25,7 @@ namespace MikanDealer
 	{
 		public enum TYPE { UNKNOWN, G_DRIVE, G_PHOTOS }
 
-		public string Url;
+		public string PublicUrl;
 		public string SrcUrl;
 		public string ID;
 		public string Title;
@@ -33,20 +33,20 @@ namespace MikanDealer
 
 		private PhotoItem() { }
 
-		public static PhotoItem Parse(PhotoSheet sheet, string id)
+		public static PhotoItem Parse(FrameSheet sheet, string id)
 		{
 			PhotoItem i = new PhotoItem() { ID = id };
-			i.Url = sheet.EndPointUrl + "img/" + sheet.SheetKey + "/" + sheet.Worksheet + "/" + i.ID;
 			return i;
 		}
 
-		public static PhotoItem Parse(PhotoSheet sheet, Dictionary<string, object> o)
+		public static PhotoItem Parse(FrameSheet sheet, Dictionary<string, object> o)
 		{
 			if (o == null) return null;
 
 			PhotoItem i = new PhotoItem();
 			try
 			{
+				if (o.ContainsKey("public")) i.PublicUrl = (string)o["public"];
 				if (o.ContainsKey("url")) i.SrcUrl = (string)o["url"];
 				if (o.ContainsKey("id")) i.ID = (string)o["id"];
 				if (o.ContainsKey("title")) i.Title = (string)o["title"];
@@ -55,7 +55,6 @@ namespace MikanDealer
 					if ((string)o["type"] == TYPE.G_PHOTOS.ToString()) i.Type = TYPE.G_PHOTOS;
 					if ((string)o["type"] == TYPE.G_DRIVE.ToString()) i.Type = TYPE.G_DRIVE;
 				}
-				i.Url = sheet.EndPointUrl + "img/" + sheet.SheetKey + "/" + sheet.Worksheet + "/" + i.ID;
 				return i;
 			}
 			catch(Exception ex)
@@ -66,13 +65,14 @@ namespace MikanDealer
 		}
 	}
 
-	[CustomEditor(typeof(PhotoFrameManager))]
+	[CustomEditor(typeof(SyncFrameManager))]
 	public class MonoBehaviourModelEditor : Editor
 	{
-		PhotoFrameManager _Instance = null;
+		SyncFrameManager _Instance = null;
 
-		private string BASE_URL = "https://photo-frame-cache-ow7nx6wgvq-an.a.run.app/";
-		private PhotoSheet CurrentSheet = null;
+//		private string BASE_URL = "https://photo-frame-cache-ow7nx6wgvq-an.a.run.app/";
+		private string BASE_URL = "http://localhost:8080/";
+		private FrameSheet CurrentSheet = null;
 		private Dictionary<string, PhotoItem> PhotoTable = null;
 
 		void Awake()
@@ -84,7 +84,7 @@ namespace MikanDealer
 		{
 			if (state == PlayModeStateChange.ExitingEditMode)
 			{
-				foreach (var frame in SelectPhotoFrames())
+				foreach (var frame in SelectSyncFrames())
 				{
 					ClearTexture(frame);
 				}
@@ -93,7 +93,7 @@ namespace MikanDealer
 
 		void OnEnable()
 		{
-			_Instance = target as PhotoFrameManager;
+			_Instance = target as SyncFrameManager;
 			LoadEnv();
 		}
 
@@ -124,7 +124,7 @@ namespace MikanDealer
 			if (GUILayout.Button("設定！"))
 			{
 				LoadSheet();
-				EditorCoroutine.Start(UpdatingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
+				EditorCoroutine.Start(UpdatingSyncFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
 			}
 			EditorGUILayout.LabelField("");
 
@@ -134,7 +134,7 @@ namespace MikanDealer
 			if (GUILayout.Button("クリア"))
 			{
 				LoadSheet();
-				EditorCoroutine.Start(ClearingPhotoFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
+				EditorCoroutine.Start(ClearingSyncFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
 			}
 		}
 
@@ -157,12 +157,12 @@ namespace MikanDealer
 			return true;
 		}
 
-		private IEnumerator UpdatingPhotoFrames(string url, string worksheet)
+		private IEnumerator UpdatingSyncFrames(string url, string worksheet)
 		{
 			string key = GetSpreadSheetKey(url);
 			if (string.IsNullOrEmpty(key) || !Validate(key, worksheet)) yield break;
 
-			foreach (var frame in SelectPhotoFrames()) frame.AssignLoading();
+			foreach (var frame in SelectSyncFrames()) frame.AssignLoading();
 
 			string api = BASE_URL + "sheet/" + key + "/" + worksheet + ".json";
 			using (UnityWebRequest www = UnityWebRequest.Get(api))
@@ -174,21 +174,21 @@ namespace MikanDealer
 					Debug.LogError("Sheet API: " + api + "\n" + www.error);
 					yield break;
 				}
-				string[] lines = www.downloadHandler.text.Split('\n');
-				if (lines[0] != "OK")
+				Dictionary<string, object> response = Json.Deserialize(www.downloadHandler.text) as Dictionary<string, object>;
+				if (response == null || (string)response["status"] != "OK")
 				{
-					Debug.LogError("スプレッドシートからデータの読み込みに失敗しました\n" + lines[1]);
+					Debug.LogError("スプレッドシートからデータの読み込みに失敗しました\n" + www.downloadHandler.text);
 					yield break;
 				}
 				PhotoTable = new Dictionary<string, PhotoItem>();
-				foreach (var o in Json.Deserialize(lines[1]) as List<object>)
+				foreach (var o in response["items"] as List<object>)
 				{
 					var item = PhotoItem.Parse(CurrentSheet, o as Dictionary<string, object>);
 					if (item != null) PhotoTable[item.ID] = item;
 				}
 			}
 
-			foreach(var frame in SelectPhotoFrames())
+			foreach(var frame in SelectSyncFrames())
 			{
 				EditorCoroutine.Start(AssigningWebTexture(frame));
 
@@ -201,9 +201,9 @@ namespace MikanDealer
 			}
 		}
 
-		private IEnumerator ClearingPhotoFrames(string url, string worksheet)
+		private IEnumerator ClearingSyncFrames(string url, string worksheet)
 		{
-			foreach (var frame in SelectPhotoFrames())
+			foreach (var frame in SelectSyncFrames())
 			{
 				ClearTexture(frame);
 			}
@@ -232,11 +232,11 @@ namespace MikanDealer
 			}
 		}
 
-		private PhotoFrame[] SelectPhotoFrames()
+		private SyncFrame[] SelectSyncFrames()
 		{
-			if (_Instance == null) return new PhotoFrame[] { };
+			if (_Instance == null) return new SyncFrame[] { };
 
-			var frames = _Instance.transform.GetComponentsInChildren<PhotoFrame>();
+			var frames = _Instance.transform.GetComponentsInChildren<SyncFrame>();
 			foreach (var frame in frames)
 			{
 				if (string.IsNullOrEmpty(frame.ID)) continue;
@@ -244,7 +244,7 @@ namespace MikanDealer
 			return frames;
 		}
 
-		private IEnumerator AssigningWebTexture(PhotoFrame frame)
+		private IEnumerator AssigningWebTexture(SyncFrame frame)
 		{
 			PhotoItem item;
 			if (PhotoTable.ContainsKey(frame.ID))
@@ -255,7 +255,7 @@ namespace MikanDealer
 			{
 				item = PhotoItem.Parse(CurrentSheet, frame.ID);
 			}
-			frame.Url = new VRCUrl(item.Url);
+			frame.Url = new VRCUrl(item.PublicUrl);
 
 			Renderer renderer = frame.GetComponent<Renderer>();
 			if (renderer == null || renderer.sharedMaterial == null) yield break;
@@ -282,7 +282,7 @@ namespace MikanDealer
 			}
 		}
 
-		private void ClearTexture(PhotoFrame frame)
+		private void ClearTexture(SyncFrame frame)
 		{
 			Renderer renderer = frame.GetComponent<Renderer>();
 			if (renderer == null || renderer.sharedMaterial == null) return;
@@ -292,7 +292,7 @@ namespace MikanDealer
 
 		private void LoadEnv()
 		{
-			string path = System.IO.Path.Combine(Application.dataPath, "MikanDealer/PhotoFrame/env.json");
+			string path = System.IO.Path.Combine(Application.dataPath, "MikanDealer/SyncFrame/env.json");
 			if (System.IO.File.Exists(path))
 			{
 				var data = Json.Deserialize(System.IO.File.ReadAllText(path)) as Dictionary<string, object>;
@@ -306,7 +306,7 @@ namespace MikanDealer
 
 		private void LoadSheet()
 		{
-			CurrentSheet = new PhotoSheet()
+			CurrentSheet = new FrameSheet()
 			{
 				EndPointUrl = BASE_URL.EndsWith("/") ? BASE_URL : BASE_URL + "/",
 				SheetKey = GetSpreadSheetKey(_Instance.SpreadSheetUrl),

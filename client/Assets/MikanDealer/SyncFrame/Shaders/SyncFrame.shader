@@ -1,4 +1,4 @@
-﻿Shader "MikanDealer/PhotoFrame"
+﻿Shader "MikanDealer/SyncFrame"
 {
     Properties
     {

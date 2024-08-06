@@ -7,7 +7,7 @@ from src.BucketImage import BucketImage
 
 
 app = Flask(__name__)
-web = Web(Config("private/photoframe.json"))
+web = Web(Config("private/syncframe.json"))
 
 @app.after_request
 def set_response_headers(response):

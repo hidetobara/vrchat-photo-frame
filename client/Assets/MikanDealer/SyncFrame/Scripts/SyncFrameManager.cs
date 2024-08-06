@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace MikanDealer
 {
-	public class PhotoFrameManager : MonoBehaviour
+	public class SyncFrameManager : MonoBehaviour
 	{
 		[SerializeField]
 		public string SpreadSheetUrl;
