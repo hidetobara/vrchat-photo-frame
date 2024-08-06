@@ -1,18 +1,21 @@
 import hashlib
 import boto3
-from src.Config import Config
+from src.Env import Env
+
+
+env = Env()
 
 class BucketImage:
-    BUCKET_NAME = "vphotoframe"
+    BUCKET_NAME = "syncframe"
 
-    def __init__(self, c: Config):
+    def __init__(self):
         self.client = boto3.client(
             service_name ="s3",
-            endpoint_url = c.get("endpoint"),
-            aws_access_key_id = c.get("access_key_id"),
-            aws_secret_access_key = c.get("secret_access_key"),
+            endpoint_url = env.cf_endpoint,
+            aws_access_key_id = env.cf_access_key_id,
+            aws_secret_access_key = env.cf_secret_access_key,
             region_name="auto")
-        self.SEED = c.get("seed", "HOGE")
+        self.SEED = env.seed
 
     def _gen_hash(self, s: str) -> str:
         return hashlib.md5(s.encode("utf-8")).hexdigest()

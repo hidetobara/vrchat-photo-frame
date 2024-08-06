@@ -2,24 +2,26 @@ import os, hashlib, shutil, requests, json, glob
 from flask import Flask, render_template, request, send_from_directory, redirect, jsonify
 from PIL import Image
 
+from src.Env import Env
 from src.Config import Config
 from src.Drive import Item, Drive, Sheet
 from src.BucketImage import BucketImage
 
 MIMETYPES = {".png": "image/png", ".jpg": "image/jpeg"}
+env = Env()
 
 class Web:
     TMP_DIR = "/app/tmp/"
     ITEM_LIMIT = 5
-    PUBLIC_DOMAIN = "https://pub-59fd11b0badf4635b95134214ef000ab.r2.dev"
+    PUBLIC_DOMAIN = "https://syncframe.pictures"
 
     def __init__(self, config: Config):
         self.limits = config.get("limits", {})
-        self.seed = config.get("seed", "")
+        self.seed = env.seed
         self.key = None
         self.sheet = None
         self.is_logging = True
-        self.bucket = BucketImage(Config("private/cloudflare.json"))
+        self.bucket = BucketImage()
 
     def testing(self):
         self.is_logging = False
