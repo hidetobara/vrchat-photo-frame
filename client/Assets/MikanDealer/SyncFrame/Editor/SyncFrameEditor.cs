@@ -74,6 +74,7 @@ namespace MikanDealer
 		private string BASE_URL = "http://localhost:8080/";
 		private FrameSheet CurrentSheet = null;
 		private Dictionary<string, PhotoItem> PhotoTable = null;
+		private IEnumerator Lock;
 
 		void Awake()
 		{
@@ -82,7 +83,7 @@ namespace MikanDealer
 
 		private void OnPlayModeStateChanged(PlayModeStateChange state)
 		{
-			if (state == PlayModeStateChange.ExitingEditMode)
+			if (state == PlayModeStateChange.ExitingEditMode || state == PlayModeStateChange.EnteredPlayMode)
 			{
 				foreach (var frame in SelectSyncFrames())
 				{
@@ -107,35 +108,50 @@ namespace MikanDealer
 			bold.wordWrap = true;
 			bold.fontStyle = FontStyle.Bold;
 
-			EditorGUILayout.LabelField("1. Spread Sheet URL には、次のようなスプレッドシートの URL を入力 (例) https://docs.google.com/spreadsheets/d/hoge/\n1列目をid、2列目を画像URL、3列目以降は自由です。", style);
-			EditorGUILayout.LabelField("※ スプレッドシートの共有「リンクを知っている全員」「閲覧者」に必ずして下さい ※", bold);
-			_Instance.SpreadSheetUrl = EditorGUILayout.TextField("Spread Sheet Url", _Instance.SpreadSheetUrl);
-			EditorGUILayout.LabelField("");
-
-			EditorGUILayout.LabelField("2. Work Sheet には、スプレッドシート下部のワークシート(タブ)の名前を入力", style);
-			_Instance.WorkSheet = EditorGUILayout.TextField("Work Sheet", _Instance.WorkSheet);
-			EditorGUILayout.LabelField("");
-
-			EditorGUILayout.LabelField("3. 子オブジェクトの Photo Frame のインスペクター内の id を表示したい画像のものを入力", style);
-			EditorGUILayout.LabelField("Photo Frame Manager は、この子オブジェクトだけの画像を管理します", style);
-			EditorGUILayout.LabelField("");
-
-			EditorGUILayout.LabelField("4. 「設定！」で、スプレッドシートからURLの画像を読み込み仮表示", style);
-			if (GUILayout.Button("設定！"))
+			EditorGUI.BeginDisabledGroup(Lock != null);
 			{
-				LoadSheet();
-				EditorCoroutine.Start(UpdatingSyncFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
-			}
-			EditorGUILayout.LabelField("");
+				EditorGUILayout.LabelField("1. Spread Sheet URL には、次のようなスプレッドシートの URL を入力 (例) https://docs.google.com/spreadsheets/d/hoge/\n1列目をid、2列目を画像URL、3列目以降は自由です。", style);
+				EditorGUILayout.LabelField("※ スプレッドシートの共有「リンクを知っている全員」「閲覧者」に必ずして下さい ※", bold);
+				_Instance.SpreadSheetUrl = EditorGUILayout.TextField("Spread Sheet Url", _Instance.SpreadSheetUrl);
+				EditorGUILayout.LabelField("");
 
-			EditorGUILayout.LabelField("5. オプション", style);
-			EditorGUILayout.LabelField("●アップロードするワールドに画像を含めたい場合は、このままワールドのビルドを行ってください。Webからの画像の読み込みが終わり次第、最新の画像に変わります。", style);
-			EditorGUILayout.LabelField("●アップロードするワールドに画像を含めたくない場合は、以下の「クリア」を押してください。ワールド容量を軽くできますが、Webからの画像読み込みが終わるまでは表示されません。", style);
-			if (GUILayout.Button("クリア"))
-			{
-				LoadSheet();
-				EditorCoroutine.Start(ClearingSyncFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet));
+				EditorGUILayout.LabelField("2. Work Sheet には、スプレッドシート下部のワークシート(タブ)の名前を入力", style);
+				_Instance.WorkSheet = EditorGUILayout.TextField("Work Sheet", _Instance.WorkSheet);
+				EditorGUILayout.LabelField("");
+
+				EditorGUILayout.LabelField("3. スプレッドシートを読み込みます。", style);
+				if (GUILayout.Button("読み込み！"))
+				{
+					LoadSheet();
+					Lock = UpdatingSyncFrames(_Instance.SpreadSheetUrl, _Instance.WorkSheet);
+					EditorCoroutine.Start(Lock);
+				}
+				EditorGUILayout.LabelField("");
 			}
+			EditorGUI.EndDisabledGroup();
+			EditorGUI.BeginDisabledGroup(Lock != null || PhotoTable == null);
+			{
+				EditorGUILayout.LabelField("4. 画像をサーバーにアップロードします。これには数分かかります。", style);
+				if (GUILayout.Button("アップロード！"))
+				{
+					Lock = UploadingPhotos();
+					EditorCoroutine.Start(Lock);
+				}
+				EditorGUILayout.LabelField("");
+
+				EditorGUILayout.LabelField("5. 子オブジェクトの Photo Frame のインスペクター内の id を表示したい画像のものを入力", style);
+				EditorGUILayout.LabelField("Photo Frame Manager は、この子オブジェクトだけの画像を管理します", style);
+				EditorGUILayout.LabelField("");
+
+				EditorGUILayout.LabelField("6. 「設定！」で、スプレッドシートからURLの画像を読み込み仮表示", style);
+				if (GUILayout.Button("表示！"))
+				{
+					Lock = AssigningPhotos();
+					EditorCoroutine.Start(Lock);
+				}
+				EditorGUILayout.LabelField("");
+			}
+			EditorGUI.EndDisabledGroup();
 		}
 
 		private string GetSpreadSheetKey(string url)
@@ -169,15 +185,17 @@ namespace MikanDealer
 			{
 				yield return www.SendWebRequest();
 				while (!www.isDone) yield return null;
-				if (www.isHttpError || www.isNetworkError)
+				if (www.result != UnityWebRequest.Result.Success)
 				{
 					Debug.LogError("Sheet API: " + api + "\n" + www.error);
+					Lock = null;
 					yield break;
 				}
 				Dictionary<string, object> response = Json.Deserialize(www.downloadHandler.text) as Dictionary<string, object>;
 				if (response == null || (string)response["status"] != "OK")
 				{
 					Debug.LogError("スプレッドシートからデータの読み込みに失敗しました\n" + www.downloadHandler.text);
+					Lock = null;
 					yield break;
 				}
 				PhotoTable = new Dictionary<string, PhotoItem>();
@@ -187,18 +205,44 @@ namespace MikanDealer
 					if (item != null) PhotoTable[item.ID] = item;
 				}
 			}
+			Debug.Log("読み込み完了！");
+			Lock = null;
+		}
 
+		private IEnumerator UploadingPhotos()
+		{
+			foreach(PhotoItem item in PhotoTable.Values)
+			{
+				double start = EditorApplication.timeSinceStartup;
+				while(EditorApplication.timeSinceStartup - start < 3.0) yield return new WaitForSeconds(1f);
+				string key = CurrentSheet.SheetKey;
+				string worksheet = CurrentSheet.Worksheet;
+				string api = BASE_URL + "upload/" + key + "/" + worksheet + "/" + item.ID;
+				Debug.Log(" Uploading=" + api);
+				using (UnityWebRequest www = UnityWebRequest.Get(api))
+				{
+					yield return www.SendWebRequest();
+					while (!www.isDone) yield return null;
+					if (www.result != UnityWebRequest.Result.Success)
+					{
+						Debug.LogError(www.error);
+					}
+				}
+			}
+			Debug.Log("アップロード完了！");
+			Lock = null;
+		}
+
+		private IEnumerator AssigningPhotos()
+		{
 			foreach(var frame in SelectSyncFrames())
 			{
 				EditorCoroutine.Start(AssigningWebTexture(frame));
 
-				float timeElapsed = 0;
-				while (timeElapsed > 5)
-				{
-					timeElapsed += Time.unscaledDeltaTime;
-					yield return null;
-				}
+				double start = EditorApplication.timeSinceStartup;
+				while(EditorApplication.timeSinceStartup - start < 1.0) yield return new WaitForSeconds(1f);
 			}
+			Lock = null;
 		}
 
 		private IEnumerator ClearingSyncFrames(string url, string worksheet)
@@ -211,18 +255,17 @@ namespace MikanDealer
 			string key = GetSpreadSheetKey(url);
 			if (string.IsNullOrEmpty(key) || !Validate(key, worksheet)) yield break;
 
-			string api = BASE_URL + "clear/" + key + "/" + worksheet;
+			string api = BASE_URL + "delete/" + key + "/" + worksheet;
 			Debug.Log(api);
 			using (UnityWebRequest www = UnityWebRequest.Get(api))
 			{
 				yield return www.SendWebRequest();
 				while (!www.isDone) yield return null;
-				if (www.isHttpError || www.isNetworkError)
+				if (www.result != UnityWebRequest.Result.Success)
 				{
 					Debug.LogError(www.error);
 					yield break;
 				}
-
 				string[] lines = www.downloadHandler.text.Split('\n');
 				if (lines[0] != "OK" && lines.Length > 1)
 				{
@@ -264,7 +307,7 @@ namespace MikanDealer
 			{
 				yield return www.SendWebRequest();
 				while (!www.isDone) yield return null;
-				if (www.isHttpError || www.isNetworkError)
+				if (www.result != UnityWebRequest.Result.Success)
 				{
 					Debug.LogError("Image URL: " + frame.Url.Get() + "\n" + www.error);
 				}

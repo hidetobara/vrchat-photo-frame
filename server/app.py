@@ -53,8 +53,7 @@ def delete_object(key, worksheet, id):
             return url
         return "OK"
     except Exception as ex:
-        raise(ex)
-        return "FAIL\n" + str(ex), 404
+        return "FAIL\n" + ex.__class__.__name__ + "\n" + str(ex), 404
 
 @app.route('/upload/<key>/<worksheet>/<id>', methods=['GET'])
 def upload_object(key, worksheet, id):
@@ -64,8 +63,7 @@ def upload_object(key, worksheet, id):
             return url
         return "OK"
     except Exception as ex:
-        raise(ex)
-        return "FAIL\n" + str(ex), 404
+        return "FAIL\n" + ex.__class__.__name__ + "\n" + str(ex), 404
 
 ##### 管理 #####
 @app.route('/manage/<key>/<worksheet>/', methods=['GET'])

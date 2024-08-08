@@ -14,7 +14,7 @@ COPY . ./
 
 CMD exec gunicorn --bind :8080 --workers 1 app:app
 
-# docker build -t vrchat-photo-frame/manager .
-# docker run --rm -it -p 8080:8080 -v c/obara/vrchat-photo-frame/server:/app vrchat-photo-frame/manager /bin/bash
-# docker tag photo-frame-cache asia-northeast1-docker.pkg.dev/vrchat-photo-frame/server/photo-frame-manager
-# docker image push asia-northeast1-docker.pkg.dev/vrchat-photo-frame/server/photo-frame-manager
+# docker build -t vrchat-photo-frame/sync-frame .
+# docker run --rm -it -p 8080:8080 -v c/obara/vrchat-photo-frame/server:/app vrchat-photo-frame/sync-frame /bin/bash
+# docker tag photo-frame-cache asia-northeast1-docker.pkg.dev/vrchat-photo-frame/server/sync-frame
+# docker image push asia-northeast1-docker.pkg.dev/vrchat-photo-frame/server/sync-frame
