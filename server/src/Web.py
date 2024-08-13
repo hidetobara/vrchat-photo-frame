@@ -47,7 +47,8 @@ class Web:
             "key": key,
             "worksheet": worksheet,
             "items": items,
-            "count_owner_objects": self.bucket.count_owner_objects(self.owner),
+            "frame_used": self.bucket.count_owner_objects(self.owner),
+            "frame_limit": self.get_limit(self.owner),
             "message": message,
         }
         return render_template('manage.html', **context)

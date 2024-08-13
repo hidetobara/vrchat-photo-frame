@@ -33,13 +33,13 @@ namespace MikanDealer
 
 		private PhotoItem() { }
 
-		public static PhotoItem Parse(FrameSheet sheet, string id)
+		public static PhotoItem Parse(string id)
 		{
 			PhotoItem i = new PhotoItem() { ID = id };
 			return i;
 		}
 
-		public static PhotoItem Parse(FrameSheet sheet, Dictionary<string, object> o)
+		public static PhotoItem Parse(Dictionary<string, object> o)
 		{
 			if (o == null) return null;
 
@@ -68,10 +68,11 @@ namespace MikanDealer
 	[CustomEditor(typeof(SyncFrameManager))]
 	public class MonoBehaviourModelEditor : Editor
 	{
+		private string BASE_URL = "https://sync-frame-ow7nx6wgvq-an.a.run.app/";
+//		private string BASE_URL = "http://localhost:8080/";
+
 		SyncFrameManager _Instance = null;
 
-//		private string BASE_URL = "https://photo-frame-cache-ow7nx6wgvq-an.a.run.app/";
-		private string BASE_URL = "http://localhost:8080/";
 		private FrameSheet CurrentSheet = null;
 		private int PhotoLimit = 0;
 		private int PhotoUsed = 0;
@@ -149,8 +150,11 @@ namespace MikanDealer
 				EditorGUILayout.LabelField("5. 子オブジェクトの Photo Frame のインスペクター内の id を表示したい画像のものを入力", style);
 				EditorGUILayout.LabelField("Photo Frame Manager は、この子オブジェクトだけの画像を管理します", style);
 				EditorGUILayout.LabelField("");
+			}
+			EditorGUI.EndDisabledGroup();
 
-				EditorGUILayout.LabelField("6. 「設定！」で、スプレッドシートからURLの画像を読み込み仮表示", style);
+			{
+				EditorGUILayout.LabelField("6. 「表示！」で、サーバーから画像を読み込み仮表示", style);
 				if (GUILayout.Button("表示！"))
 				{
 					Lock = AssigningPhotos();
@@ -158,7 +162,6 @@ namespace MikanDealer
 				}
 				EditorGUILayout.LabelField("");
 			}
-			EditorGUI.EndDisabledGroup();
 		}
 
 		private string GetSpreadSheetKey(string url)
@@ -213,7 +216,7 @@ namespace MikanDealer
 				PhotoTable = new Dictionary<string, PhotoItem>();
 				foreach (var o in response["items"] as List<object>)
 				{
-					var item = PhotoItem.Parse(CurrentSheet, o as Dictionary<string, object>);
+					var item = PhotoItem.Parse(o as Dictionary<string, object>);
 					if (item != null) PhotoTable[item.ID] = item;
 				}
 			}
@@ -302,15 +305,11 @@ namespace MikanDealer
 		private IEnumerator AssigningWebTexture(SyncFrame frame)
 		{
 			PhotoItem item;
-			if (PhotoTable.ContainsKey(frame.ID))
+			if (PhotoTable != null && PhotoTable.ContainsKey(frame.ID))
 			{
 				item = PhotoTable[frame.ID];
-			}
-			else
-			{
-				item = PhotoItem.Parse(CurrentSheet, frame.ID);
-			}
-			frame.Url = new VRCUrl(item.PublicUrl);
+				frame.Url = new VRCUrl(item.PublicUrl);
+			}			
 
 			Renderer renderer = frame.GetComponent<Renderer>();
 			if (renderer == null || renderer.sharedMaterial == null) yield break;

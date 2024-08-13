@@ -91,7 +91,7 @@ class Sheet(Drive):
         self.gc = gspread.authorize(self.credentials)
 
     def close(self):
-        if self.gc is not None:
+        if self.gc is not None and hasattr(self.gc, "session"):
             self.gc.session.close()
             self.gc = None
 
