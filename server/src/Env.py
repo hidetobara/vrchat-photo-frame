@@ -6,6 +6,7 @@ class Env(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
 
     seed: str = Field(default="HOGE")
+    photo_limit: int = Field(default=5)
 
     # Cloudflare
     cf_access_key_id: str

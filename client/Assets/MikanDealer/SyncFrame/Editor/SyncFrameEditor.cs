@@ -73,6 +73,8 @@ namespace MikanDealer
 //		private string BASE_URL = "https://photo-frame-cache-ow7nx6wgvq-an.a.run.app/";
 		private string BASE_URL = "http://localhost:8080/";
 		private FrameSheet CurrentSheet = null;
+		private int PhotoLimit = 0;
+		private int PhotoUsed = 0;
 		private Dictionary<string, PhotoItem> PhotoTable = null;
 		private IEnumerator Lock;
 
@@ -131,6 +133,11 @@ namespace MikanDealer
 			EditorGUI.EndDisabledGroup();
 			EditorGUI.BeginDisabledGroup(Lock != null || PhotoTable == null);
 			{
+				if (PhotoLimit > 0)
+				{
+					EditorGUILayout.LabelField("サーバーの画像使用量 " + PhotoUsed + "/" + PhotoLimit);
+					EditorGUILayout.LabelField("");
+				}
 				EditorGUILayout.LabelField("4. 画像をサーバーにアップロードします。これには数分かかります。", style);
 				if (GUILayout.Button("アップロード！"))
 				{
@@ -192,12 +199,17 @@ namespace MikanDealer
 					yield break;
 				}
 				Dictionary<string, object> response = Json.Deserialize(www.downloadHandler.text) as Dictionary<string, object>;
-				if (response == null || (string)response["status"] != "OK")
+				if (response == null || (string)response["status"] != "OK" || response["frame"] == null)
 				{
 					Debug.LogError("スプレッドシートからデータの読み込みに失敗しました\n" + www.downloadHandler.text);
 					Lock = null;
 					yield break;
 				}
+				Dictionary<string, object> frame = response["frame"] as Dictionary<string, object>;
+				if (frame == null) yield break;
+				PhotoLimit = int.Parse(frame["limit"].ToString());
+				PhotoUsed = int.Parse(frame["used"].ToString());
+
 				PhotoTable = new Dictionary<string, PhotoItem>();
 				foreach (var o in response["items"] as List<object>)
 				{

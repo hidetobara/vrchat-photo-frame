@@ -12,7 +12,6 @@ env = Env()
 
 class Web:
     TMP_DIR = "/app/tmp/"
-    ITEM_LIMIT = 5
     PUBLIC_DOMAIN = "https://syncframe.pictures"
 
     def __init__(self, config: Config):
@@ -64,7 +63,7 @@ class Web:
     def get_limit(self, owner: str):
         if owner in self.limits:
             return self.limits[owner]
-        return Web.ITEM_LIMIT
+        return env.photo_limit
 
     def get_item(self, worksheet: str, id: str):
         table = self.sheet.load(worksheet)
@@ -94,7 +93,11 @@ class Web:
         box = []
         for item in items:
             box.append(item.to_dict())
-        return json.dumps({"status":"OK", "items": box}, ensure_ascii=False)
+        frame = {
+            "limit": self.get_limit(self.owner),
+            "used": self.bucket.count_owner_objects(self.owner),
+        }
+        return json.dumps({"status":"OK", "frame": frame, "items": box}, ensure_ascii=False)
         
     def download_img(self, worksheet: str, id: str):
         item = self.get_item(worksheet, id)
@@ -154,6 +157,9 @@ class Web:
         self.bucket.delete_object(self.owner, self.key, worksheet, id)
 
     def upload_object(self, worksheet: str, id :str):
+        count = self.bucket.count_owner_objects(self.owner)
+        if count >= self.get_limit(self.owner):
+            return False
         item = self.get_item(worksheet, id)
         if not item:
             return False
