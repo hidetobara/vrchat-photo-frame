@@ -1,7 +1,7 @@
-﻿Dyanamic Photo Frame α版 ver0.1
+﻿Sync Frame α版 ver0.2
 
 # 概要
-Dyanamic Photo Frame では、Google Spread Sheet 上で管理した画像リンクを差し替えることで、
+Sync Frame では、Google Spread Sheet 上で管理した画像リンクを差し替えることで、
 ワールドの更新無しに、VRChat 上で表示される画像を更新することができます。
 
 # 使い方
@@ -20,20 +20,24 @@ Google ドライブ上で、対象となる画像に対し、共有ボタンを�
 # Unity 上
 Dynamic Photo Frame の Unity packaege をインポートします。
 
-PhotoManager の prefab をワールド内に設置し、unpack します。
-PhotoManager のインスペクターで、
+SyncManager の prefab をワールド内に設置し、unpack します。
+SyncManager のインスペクターで、
 Spread Sheet URL に、リンクを入力します。
 Work Sheet は、ワークシート名を入力します。
 
-PhotoManager の子オブジェクト SyncFrame のインスペクターの ID に
+読み込みボタンによって、このスプレッドシートが読み込まれます。
+アップロードボタンによって、スプレッドシート内に指定された画像を
+CDNサーバと同期します。
+
+SyncManager の子オブジェクト SyncFrame のインスペクターの ID に
 スプレッドシート1列目に入力した同じものを入力します。
 
-PhotoManager のインスペクターに戻り、「仮表示」を押してください。
+SyncManager のインスペクターに戻り、「表示」を押してください。
 うまく表示されましたか？
 お疲れ様でした！
 
 # より進んだ設定
-- Photo Frame のインスペクター
+- Sync Frame のインスペクター
   - Auto Adjust Aspect は読み込む画像のアスペクト比に応じて、フレーム縦横比を調整します。
     - Transform の Scale の最大値をもとにフレームの大きさは決まります。
   - Frame Width を 0 にすると、フレームは無くなります。

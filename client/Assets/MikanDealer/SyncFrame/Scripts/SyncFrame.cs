@@ -18,7 +18,6 @@ namespace MikanDealer
 
 	public class SyncFrame : UdonSharpBehaviour
 	{
-
 		public string ID;
 		public bool AutoAdjustAspect = true;
 		public float FrameWidth = 0.1f;
