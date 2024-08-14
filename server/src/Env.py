@@ -5,8 +5,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Env(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
 
+    plan: str
     seed: str = Field(default="HOGE")
-    photo_limit: int = Field(default=5)
+    frame_limit: int = Field(default=5)
 
     # Cloudflare
     cf_access_key_id: str

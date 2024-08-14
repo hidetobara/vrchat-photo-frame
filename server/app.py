@@ -5,6 +5,8 @@ from src.Config import Config
 from src.Web import Web
 from src.BucketImage import BucketImage
 
+# Drive読み取りで必要か？
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "/app/private/sync-frame-runner.json"
 
 app = Flask(__name__)
 web = Web(Config("private/syncframe.json"))

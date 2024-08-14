@@ -64,7 +64,7 @@ class Web:
     def get_limit(self, owner: str):
         if owner in self.limits:
             return self.limits[owner]
-        return env.photo_limit
+        return env.frame_limit
 
     def get_item(self, worksheet: str, id: str):
         table = self.sheet.load(worksheet)

@@ -4,17 +4,15 @@ from PIL import Image
 
 from google.oauth2 import service_account
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "/app/private/vrchat-analyzer.json"
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "/app/private/sync-frame-runner.json"
 
 class Photos:
     """
     サービスアカウントは使えない、いったん保留
     """
-    SERVICE_ACCOUNT = "/app/private/vrchat-analyzer.json"
     SCOPES = ['https://www.googleapis.com/auth/photoslibrary',
               'https://www.googleapis.com/auth/photoslibrary.sharing']
 

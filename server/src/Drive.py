@@ -64,7 +64,7 @@ class Drive:
 
     def __init__(self, key):
         self.key = key
-        self.credentials = ServiceAccountCredentials.from_json_keyfile_name('/app/private/vrchat-analyzer.json', self.SCOPES)
+        self.credentials = ServiceAccountCredentials.from_json_keyfile_name('/app/private/sync-frame-runner.json', self.SCOPES)
         self.file = None
         self.owner = None
 
