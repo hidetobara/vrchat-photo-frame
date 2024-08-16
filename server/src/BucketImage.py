@@ -45,7 +45,7 @@ class BucketImage:
         prefix = "images/" + self.get_work_dir(owner, key, worksheet) + "/"
         response = self.client.list_objects_v2(Bucket=self.BUCKET_NAME, Prefix=prefix)
         for c in response['Contents']:
-            self.client.delete_object(self.BUCKET_NAME, c['Key'])
+            self.client.delete_object(Bucket=self.BUCKET_NAME, Key=c['Key'])
     def delete_object(self, owner, key, worksheet, id):
         workdir = self.get_work_dir(owner, key, worksheet)
         path = f"images/{workdir}/{id}"

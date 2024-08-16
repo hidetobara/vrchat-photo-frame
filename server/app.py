@@ -45,7 +45,7 @@ def delete_work_objects(key, worksheet):
         web.prepare(key).delete_work_objects(worksheet)
         return "OK"
     except Exception as ex:
-        return "FAIL\n" + str(ex), 404
+        return "FAIL\n" + ex.__class__.__name__ + "\n" + str(ex), 404
 
 @app.route('/delete/<key>/<worksheet>/<id>', methods=['GET'])
 def delete_object(key, worksheet, id):

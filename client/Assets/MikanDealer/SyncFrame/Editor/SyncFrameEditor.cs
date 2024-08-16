@@ -78,6 +78,7 @@ namespace MikanDealer
 		private int PhotoUsed = 0;
 		private Dictionary<string, PhotoItem> PhotoTable = null;
 		private IEnumerator Lock;
+		private bool EditorIsFoldout = false;
 
 		void Awake()
 		{
@@ -162,6 +163,39 @@ namespace MikanDealer
 				}
 				EditorGUILayout.LabelField("");
 			}
+
+			EditorIsFoldout = EditorGUILayout.Foldout(EditorIsFoldout, "危険な操作");
+			if (EditorIsFoldout)
+			{
+				EditorGUI.BeginDisabledGroup(Lock != null || PhotoTable == null);
+				{
+					GUIStyle red = StartColorStyle(Color.red);
+					GUILayout.Label("現在のワークシート(タブ)の画像を削除する際は、その名前を入力し、削除ボタンを押してください。", red);
+					EndColorStyle(red);
+					_Instance.RemovingSheet = EditorGUILayout.TextField("Removing Sheet", _Instance.RemovingSheet);
+					if (GUILayout.Button("削除"))
+					{
+						Lock = RemovingPhotos(_Instance.SpreadSheetUrl, _Instance.WorkSheet, _Instance.RemovingSheet);
+						EditorCoroutine.Start(Lock);
+					}
+				}
+				EditorGUI.EndDisabledGroup();
+			}
+		}
+
+		private GUIStyle StartColorStyle(Color color)
+		{
+			GUIStyle style = GUI.skin.label;
+			GUIStyleState styleState = new GUIStyleState();
+			styleState.textColor = color;
+			style.normal = styleState;
+			return style;
+		}
+		private void EndColorStyle(GUIStyle style)
+		{
+			GUIStyleState styleState2 = new GUIStyleState();
+			styleState2.textColor = EditorStyles.label.normal.textColor;
+			style.normal = styleState2;
 		}
 
 		private string GetSpreadSheetKey(string url)
@@ -186,7 +220,12 @@ namespace MikanDealer
 		private IEnumerator UpdatingSyncFrames(string url, string worksheet)
 		{
 			string key = GetSpreadSheetKey(url);
-			if (string.IsNullOrEmpty(key) || !Validate(key, worksheet)) yield break;
+			if (string.IsNullOrEmpty(key) || !Validate(key, worksheet))
+			{
+				Debug.LogError("スプレッドシートのURLを確認してください " + url);
+				Lock = null;
+				yield break;
+			}
 
 			foreach (var frame in SelectSyncFrames()) frame.AssignLoading();
 
@@ -260,15 +299,21 @@ namespace MikanDealer
 			Lock = null;
 		}
 
-		private IEnumerator ClearingSyncFrames(string url, string worksheet)
+		private IEnumerator RemovingPhotos(string url, string worksheet, string removing)
 		{
-			foreach (var frame in SelectSyncFrames())
+			if (removing != worksheet)
 			{
-				ClearTexture(frame);
+				Debug.LogError("ワークシート名が一致しません " + worksheet);
+				Lock = null;
+				yield break;
 			}
-
 			string key = GetSpreadSheetKey(url);
-			if (string.IsNullOrEmpty(key) || !Validate(key, worksheet)) yield break;
+			if (string.IsNullOrEmpty(key) || !Validate(key, worksheet))
+			{
+				Debug.LogError("スプレッドシートのURLを確認してください " + url);
+				Lock = null;
+				yield break;
+			}
 
 			string api = BASE_URL + "delete/" + key + "/" + worksheet;
 			Debug.Log(api);
@@ -285,9 +330,10 @@ namespace MikanDealer
 				if (lines[0] != "OK" && lines.Length > 1)
 				{
 					Debug.LogError(lines[1]);
-					yield break;
 				}
 			}
+			Debug.Log("削除完了");
+			Lock = null;
 		}
 
 		private SyncFrame[] SelectSyncFrames()
