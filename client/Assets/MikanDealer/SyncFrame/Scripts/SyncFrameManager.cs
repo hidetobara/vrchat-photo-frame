@@ -12,6 +12,5 @@ namespace MikanDealer
 		public string WorkSheet;
 		[SerializeField]
 		public string RemovingSheet;
-
 	}
 }

@@ -89,10 +89,7 @@ namespace MikanDealer
 		{
 			if (state == PlayModeStateChange.ExitingEditMode || state == PlayModeStateChange.EnteredPlayMode)
 			{
-				foreach (var frame in SelectSyncFrames())
-				{
-					ClearTexture(frame);
-				}
+				ClearSyncFrames();
 			}
 		}
 
@@ -105,12 +102,8 @@ namespace MikanDealer
 		public override void OnInspectorGUI()
 		{
 			//base.OnInspectorGUI();
-
-			GUIStyle style = new GUIStyle(GUI.skin.label);
-			style.wordWrap = true;
-			GUIStyle bold = new GUIStyle(GUI.skin.label);
-			bold.wordWrap = true;
-			bold.fontStyle = FontStyle.Bold;
+			GUIStyle style = NormalStyle();
+			GUIStyle bold = BoldStyle();
 
 			EditorGUI.BeginDisabledGroup(Lock != null);
 			{
@@ -155,12 +148,21 @@ namespace MikanDealer
 			EditorGUI.EndDisabledGroup();
 
 			{
-				EditorGUILayout.LabelField("6. 「表示！」で、サーバーから画像を読み込み仮表示", style);
-				if (GUILayout.Button("表示！"))
+				EditorGUILayout.LabelField("6. サーバーから画像を読み込み「仮表示」し、レイアウトを確認します。", style);
+				EditorGUILayout.LabelField(" 確認ができれば「仮表示解除」します。", style);
+				GUILayout.BeginHorizontal();
 				{
-					Lock = AssigningPhotos();
-					EditorCoroutine.Start(Lock);
+					if (GUILayout.Button("仮表示"))
+					{
+						Lock = AssigningPhotos();
+						EditorCoroutine.Start(Lock);
+					}
+					if (GUILayout.Button("仮表示解除"))
+					{
+						ClearSyncFrames();
+					}
 				}
+				GUILayout.EndHorizontal();
 				EditorGUILayout.LabelField("");
 			}
 
@@ -183,6 +185,19 @@ namespace MikanDealer
 			}
 		}
 
+		private GUIStyle NormalStyle()
+		{
+			GUIStyle style = new GUIStyle(GUI.skin.label);
+			style.wordWrap = true;
+			return style;
+		}
+		private GUIStyle BoldStyle()
+		{
+			GUIStyle bold = new GUIStyle(GUI.skin.label);
+			bold.wordWrap = true;
+			bold.fontStyle = FontStyle.Bold;
+			return bold;			
+		}
 		private GUIStyle StartColorStyle(Color color)
 		{
 			GUIStyle style = GUI.skin.label;
@@ -272,15 +287,16 @@ namespace MikanDealer
 				string key = CurrentSheet.SheetKey;
 				string worksheet = CurrentSheet.Worksheet;
 				string api = BASE_URL + "upload/" + key + "/" + worksheet + "/" + item.ID;
-				Debug.Log(" Uploading=" + api);
 				using (UnityWebRequest www = UnityWebRequest.Get(api))
 				{
 					yield return www.SendWebRequest();
 					while (!www.isDone) yield return null;
 					if (www.result != UnityWebRequest.Result.Success)
 					{
-						Debug.LogError(www.error);
+						Debug.LogError(api + " " + www.error);
+						continue;
 					}
+					Debug.Log(" Uploaded=" + api);
 				}
 			}
 			Debug.Log("アップロード完了！");
@@ -316,7 +332,6 @@ namespace MikanDealer
 			}
 
 			string api = BASE_URL + "delete/" + key + "/" + worksheet;
-			Debug.Log(api);
 			using (UnityWebRequest www = UnityWebRequest.Get(api))
 			{
 				yield return www.SendWebRequest();
@@ -379,6 +394,14 @@ namespace MikanDealer
 					else
 						frame.DoneTexture(tex, 2);
 				}
+			}
+		}
+
+		private void ClearSyncFrames()
+		{
+			foreach(var frame in SelectSyncFrames())
+			{
+				ClearTexture(frame);
 			}
 		}
 
