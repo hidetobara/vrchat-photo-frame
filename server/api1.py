@@ -3,7 +3,6 @@ from flask import Flask, render_template, request, send_from_directory, redirect
 
 from src.Config import Config
 from src.Web import Web
-from src.BucketImage import BucketImage
 
 # Drive読み取りで必要か？
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "/app/private/sync-frame-runner.json"

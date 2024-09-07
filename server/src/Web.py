@@ -42,13 +42,16 @@ class Web:
         context = {}
         return render_template('top.html', **context)
     
+    def get_frame_used(self):
+        return self.bucket.count_owner_objects(self.owner)
+    
     def view_manage(self, key, worksheet, items, message=None):
         context = {
             "key": key,
             "worksheet": worksheet,
             "items": items,
-            "frame_used": self.bucket.count_owner_objects(self.owner),
-            "frame_limit": self.get_limit(self.owner),
+            "frame_used": self.get_frame_used(),
+            "frame_limit": self.get_frame_limit(),
             "message": message,
         }
         return render_template('manage.html', **context)
@@ -61,9 +64,9 @@ class Web:
             raise Exception("This sheet has No owner")
         return self
 
-    def get_limit(self, owner: str):
-        if owner in self.limits:
-            return self.limits[owner]
+    def get_frame_limit(self):
+        if self.owner in self.limits:
+            return self.limits[self.owner]
         return env.frame_limit
 
     def get_item(self, worksheet: str, id: str):
@@ -72,14 +75,17 @@ class Web:
             return table[id]
         return None
 
+    def get_public_url(self, worksheet: str, id: str):
+        workdir = self.bucket.get_work_dir(self.owner, self.key, worksheet)
+        return f"{self.PUBLIC_DOMAIN}/images/{workdir}/{id}"
+
     def get_sheet(self, worksheet: str):
         if self.is_logging:
             print("KEY=", self.key, "OWNER=", self.owner)
         table = self.sheet.load(worksheet)
         items = list(table.values())
-        workdir = self.bucket.get_work_dir(self.owner, self.key, worksheet)
         for item in items:
-            item.public_url = f"{self.PUBLIC_DOMAIN}/images/{workdir}/{item.id}"
+            item.public_url = self.get_public_url(worksheet, item.id)
         return items
 
     def get_sheet_csv(self, worksheet: str):
@@ -95,8 +101,8 @@ class Web:
         for item in items:
             box.append(item.to_dict())
         frame = {
-            "limit": self.get_limit(self.owner),
-            "used": self.bucket.count_owner_objects(self.owner),
+            "limit": self.get_frame_limit(),
+            "used": self.get_frame_used(),
         }
         return json.dumps({"status":"OK", "frame": frame, "items": box}, ensure_ascii=False)
         
@@ -158,8 +164,8 @@ class Web:
         self.bucket.delete_object(self.owner, self.key, worksheet, id)
 
     def upload_object(self, worksheet: str, id :str):
-        count = self.bucket.count_owner_objects(self.owner)
-        if count >= self.get_limit(self.owner):
+        count = self.get_frame_used()
+        if count >= self.get_frame_limit():
             return False
         item = self.get_item(worksheet, id)
         if not item:

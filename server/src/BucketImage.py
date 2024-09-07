@@ -34,6 +34,7 @@ class BucketImage:
         if 'Contents' not in response:
             return 0
         return len(response['Contents'])
+    
     def count_work_objects(self, owner, key, worksheet):
         prefix = "images/" + self.get_work_dir(owner, key, worksheet) + "/"
         response = self.client.list_objects_v2(Bucket=self.BUCKET_NAME, Prefix=prefix)
