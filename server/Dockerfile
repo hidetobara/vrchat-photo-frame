@@ -3,7 +3,7 @@ FROM python:3.11-slim
 
 RUN apt update -y && apt upgrade -y && apt -y install python3-pip vim less \
 	&& apt clean
-RUN pip3 install flask gunicorn pydantic pydantic-settings gradio FastAPI
+RUN pip3 install flask gunicorn pydantic pydantic-settings gradio FastAPI streamlit
 RUN pip3 install gspread oauth2client Pillow PyDrive2
 RUN pip3 install boto3
 #RUN pip3 install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
