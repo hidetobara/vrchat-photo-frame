@@ -1,5 +1,5 @@
-server/private/*
-server/tmp/*
+private/
+server/
 __pycache__
 Published
 

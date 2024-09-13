@@ -1,89 +1,56 @@
-import re
+import io
+import requests
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials 
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
 
-from pydrive2.auth import GoogleAuth
-from pydrive2.drive import GoogleDrive
+from src.Env import Env
+from src.Item import Item
 
 
-class Item:
-    G_DRIVE = "G_DRIVE"
-    G_PHOTOS = "G_PHOTOS"
-    UNKNOWN = "UNKNOWN"
-
-    def __init__(self, row: list) -> None:
-        self.id = row[0] if len(row) > 0 else None
-        self.url = row[1] if len(row) > 1 else None
-        self.title = row[2] if len(row) > 2 else None
-        self.public_url = None
-
-    def is_valid(self) -> bool:
-        if len(self.id) == 0 or len(self.url) == 0:
-            return False
-        return self.url.startswith("https://") or self.url.startswith("http://")
-
-    def get_type(self):
-        if self.get_drive_key():
-            return self.G_DRIVE
-        if self.get_photos_key():
-            return self.G_PHOTOS
-        return self.UNKNOWN
-
-    def get_drive_key(self):
-        if self.url is None: return None
-        m = re.match(r"https://drive\.google\.com/file/d/([\w_-]+)", self.url)
-        if m:
-            return m.group(1)
-        return None
-
-    def get_photos_key(self):
-        if self.url is None: return None
-        m = re.match(r"https://photos\.app\.goo\.gl/([\w_-]+)", self.url)
-        if m:
-            return m.group(1)
-        return None
-
-    def to_csv(self) -> list:
-        return [self.id, self.url, self.title, self.get_type(), self.public_url]
-    def to_dict(self) -> dict:
-        return {
-            "id": self.id,
-            "url": self.url,
-            "title": self.title,
-            "type": self.get_type(),
-            "public": self.public_url
-        }
+env = Env()
 
 class Drive:
     """
     権限
     https://developers.google.com/drive/api/v3/reference/permissions/list
     """
-    SCOPES = ['https://spreadsheets.google.com/feeds',
-                'https://www.googleapis.com/auth/drive']
-
     def __init__(self, key):
         self.key = key
-        self.credentials = ServiceAccountCredentials.from_json_keyfile_name('/app/private/sync-frame-runner.json', self.SCOPES)
-        self.file = None
+        self.credentials = env.get_google_credentials()
         self.owner = None
 
-    def checkOwner(self):
-        gauth = GoogleAuth()
-        gauth.auth_method = 'service'
-        gauth.credentials = self.credentials
-        drive = GoogleDrive(gauth)
-        self.file = drive.CreateFile({'id': self.key})
-        for permission in self.file.GetPermissions():
-            if permission['role'] == 'owner':
-                self.owner = permission['emailAddress']
-
-    def prepare(self) -> any:
-        self.checkOwner()
-        return self
+    def get_file_owner(self):
+        service = build('drive', 'v3', credentials=self.credentials)
+        
+        file_metadata = service.files().get(fileId=self.key, fields="owners").execute()
+        owners = file_metadata.get('owners', [])
+        
+        if owners:
+            for owner in owners:
+                self.owner = owner.get('emailAddress')
+        else:
+            print("WARN: No owner.")
 
     def download(self, path):
-        self.file.GetContentFile(path)
+        """Google Driveからファイルをダウンロードする関数"""
+        service = build('drive', 'v3', credentials=self.credentials)
+
+        # ファイル取得
+        request = service.files().get_media(fileId=self.key)
+        fh = io.FileIO(path, 'wb')
+        
+        # ダウンロードプロセス
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while not done:
+            status, done = downloader.next_chunk()
+            print(f"Download {int(status.progress() * 100)}%.")
+
+    def prepare(self) -> any:
+        self.get_file_owner()
+        return self
+
 
 class Sheet(Drive):
     def __init__(self, key):
@@ -109,3 +76,35 @@ class Sheet(Drive):
             table[i.id] = i
         return table
 
+
+class Photos:
+    """
+    やっぱり動かないな
+    """
+    def __init__(self, keys: tuple):
+        self.share_id = keys[0]
+        self.photo_id = keys[1]
+        self.credentials = env.get_google_credentials()
+        self.owner = None
+
+    def prepare(self) -> any:
+        # 何もしない
+        return self
+
+    def download(self, path):
+        service = build('photoslibrary', 'v1', credentials=self.credentials)
+        response = service.sharedAlbums().get(sharedAlbumId=self.share_id).execute()
+        album_id = response['id']
+        print(response)
+
+        results = service.mediaItems().search(body={'albumId': album_id}).execute()
+        items = results.get('mediaItems', [])
+
+        for item in items:
+            if item['id'] != self.photo_id:
+                continue
+            base_url = item['baseUrl']
+            download_url = f"{base_url}=d"
+            response = requests.get(download_url)
+            with open(path, 'wb') as f:
+                f.write(response.content)

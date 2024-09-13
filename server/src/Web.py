@@ -4,7 +4,8 @@ from PIL import Image
 
 from src.Env import Env
 from src.Config import Config
-from src.Drive import Item, Drive, Sheet
+from src.Item import Item
+from src.Drive import Drive, Sheet, Photos
 from src.BucketImage import BucketImage
 
 MIMETYPES = {".png": "image/png", ".jpg": "image/jpeg"}
@@ -109,7 +110,7 @@ class Web:
     def download_img(self, worksheet: str, id: str):
         item = self.get_item(worksheet, id)
         if item is None:
-            raise Exception(f"Not found {id}")
+            raise Exception(f"Not found {id}.")
 
         sha_folder = self.gen_hash(self.owner)
         sha_name = self.gen_hash(worksheet + "/" + id + ":" + item.url)
@@ -130,13 +131,13 @@ class Web:
             try:
                 with Image.open(tmp_path) as im:
                     if im.size[0] > 2048 or im.size[1] > 2048:
-                        raise Exception("Too large image")
+                        raise Exception("Too large image.")
                     if im.format == "PNG":
                         ext = ".png"
                     if im.format == "JPEG":
                         ext = ".jpg"
                     if ext is None:
-                        raise Exception("Unknown format")
+                        raise Exception("Unknown image format.")
             except Exception as ex:
                 os.remove(tmp_path)
                 raise ex
@@ -150,7 +151,10 @@ class Web:
             d.download(path)
             return
         if item.get_photos_key():
-            raise Exception("Not supported Photos")
+            raise Exception("Google Photos is unsupported.")
+            #d = Photos(item.get_photos_key()).prepare()
+            #d.download(path)
+            return
         
         response = requests.get(item.url)
         response.raise_for_status()
