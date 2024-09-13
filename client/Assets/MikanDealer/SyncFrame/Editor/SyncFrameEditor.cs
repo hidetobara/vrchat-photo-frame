@@ -68,8 +68,7 @@ namespace MikanDealer
 	[CustomEditor(typeof(SyncFrameManager))]
 	public class MonoBehaviourModelEditor : Editor
 	{
-		private string BASE_URL = "https://sync-frame-ow7nx6wgvq-an.a.run.app/";
-//		private string BASE_URL = "http://localhost:8080/";
+		private string BASE_URL = "https://sync-frame-api-65759203281.asia-northeast1.run.app/";
 
 		SyncFrameManager _Instance = null;
 
@@ -79,6 +78,8 @@ namespace MikanDealer
 		private Dictionary<string, PhotoItem> PhotoTable = null;
 		private IEnumerator Lock;
 		private bool EditorIsFoldout = false;
+
+		private string TemporaryCacheSheet = null;
 
 		void Awake()
 		{
@@ -97,6 +98,12 @@ namespace MikanDealer
 		{
 			_Instance = target as SyncFrameManager;
 			LoadEnv();
+			if (!String.IsNullOrEmpty(_Instance.CacheSheet)) ParseSheetJson(_Instance.CacheSheet);
+		}
+
+		void OnDisable()
+		{
+			if (!String.IsNullOrEmpty(TemporaryCacheSheet)) _Instance.CacheSheet = TemporaryCacheSheet;
 		}
 
 		public override void OnInspectorGUI()
@@ -262,20 +269,28 @@ namespace MikanDealer
 					Lock = null;
 					yield break;
 				}
-				Dictionary<string, object> frame = response["frame"] as Dictionary<string, object>;
-				if (frame == null) yield break;
-				PhotoLimit = int.Parse(frame["limit"].ToString());
-				PhotoUsed = int.Parse(frame["used"].ToString());
-
-				PhotoTable = new Dictionary<string, PhotoItem>();
-				foreach (var o in response["items"] as List<object>)
-				{
-					var item = PhotoItem.Parse(o as Dictionary<string, object>);
-					if (item != null) PhotoTable[item.ID] = item;
-				}
+				ParseSheetJson(www.downloadHandler.text);
+				TemporaryCacheSheet = www.downloadHandler.text;
 			}
 			Debug.Log("読み込み完了！");
 			Lock = null;
+		}
+
+		private void ParseSheetJson(string content)
+		{
+			Dictionary<string, object> response = Json.Deserialize(content) as Dictionary<string, object>;
+
+			Dictionary<string, object> frame = response["frame"] as Dictionary<string, object>;
+			if (frame == null) return;
+			PhotoLimit = int.Parse(frame["limit"].ToString());
+			PhotoUsed = int.Parse(frame["used"].ToString());
+
+			PhotoTable = new Dictionary<string, PhotoItem>();
+			foreach (var o in response["items"] as List<object>)
+			{
+				var item = PhotoItem.Parse(o as Dictionary<string, object>);
+				if (item != null) PhotoTable[item.ID] = item;
+			}
 		}
 
 		private IEnumerator UploadingPhotos()
