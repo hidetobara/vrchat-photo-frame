@@ -107,7 +107,7 @@ class Web:
         }
         return json.dumps({"status":"OK", "frame": frame, "items": box}, ensure_ascii=False)
         
-    def download_img(self, worksheet: str, id: str):
+    def prepare_tmp_file(self, worksheet: str, id: str) -> tuple:
         item = self.get_item(worksheet, id)
         if item is None:
             raise Exception(f"Not found {id}.")
@@ -117,6 +117,11 @@ class Web:
 
         tmp_dir = Web.TMP_DIR + sha_folder + "/"
         os.makedirs(tmp_dir, exist_ok=True)
+        return tmp_dir, sha_name
+
+    def download_img(self, worksheet: str, id: str):
+        item = self.get_item(worksheet, id)
+        tmp_dir, sha_name = self.prepare_tmp_file(worksheet, id)
 
         ext = None
         for e, type in MIMETYPES.items():
@@ -130,18 +135,20 @@ class Web:
             self.download_from_origin(item, tmp_path)
             try:
                 with Image.open(tmp_path) as im:
-                    if im.size[0] > 2048 or im.size[1] > 2048:
-                        raise Exception("Too large image.")
                     if im.format == "PNG":
                         ext = ".png"
                     if im.format == "JPEG":
                         ext = ".jpg"
                     if ext is None:
                         raise Exception("Unknown image format.")
+                    if im.size[0] > 2048 or im.size[1] > 2048:
+                        im = self.resize_image(im)
+                        im.save(tmp_dir + sha_name + ext)
+                    else:
+                        shutil.move(tmp_path, tmp_dir + sha_name + ext)
             except Exception as ex:
                 os.remove(tmp_path)
                 raise ex
-            shutil.move(tmp_path, tmp_dir + sha_name + ext)
 
         return tmp_dir, sha_name + ext, MIMETYPES[ext]
     
@@ -161,21 +168,37 @@ class Web:
         with open(path, "wb") as f:
             f.write(response.content)
 
+    def save_img(self, worksheet: str, id: str, im: Image):
+        tmp_dir, sha_name = self.prepare_tmp_file(worksheet, id)
+
+        if im.format == "PNG":
+            ext = ".png"
+        if im.format == "JPEG":
+            ext = ".jpg"
+        if ext is None:
+            raise Exception("Unknown image format.")
+        if im.size[0] > 2048 or im.size[1] > 2048:
+            im = self.resize_image(im)
+        im.save(tmp_dir + sha_name + ext)
+        return tmp_dir, sha_name + ext, MIMETYPES[ext]
+
+
     def delete_work_objects(self, worksheet: str):
         self.bucket.delete_work_objects(self.owner, self.key, worksheet)
     
     def delete_object(self, worksheet: str, id: str):
         self.bucket.delete_object(self.owner, self.key, worksheet, id)
 
-    def upload_object(self, worksheet: str, id :str):
+    def upload_object(self, worksheet: str, id :str, im:Image=None):
         count = self.get_frame_used()
         if count >= self.get_frame_limit():
             return False
         item = self.get_item(worksheet, id)
         if not item:
             return False
-        tmp_dir, filename, _ = self.download_img(worksheet, item.id)
-        with open(tmp_dir + "/" + filename, mode="rb") as f:
+        
+        tmp_dir, filename, _ = self.download_img(worksheet, id) if im is None else self.save_img(worksheet, id, im)
+        with open(os.path.join(tmp_dir, filename), mode="rb") as f:
             self.bucket.upload(self.owner, self.key, worksheet, item.id, f)
         return True
 
@@ -184,3 +207,13 @@ class Web:
         if goto:
             return redirect(f"/manage/{self.key}/{worksheet}")
         return None
+
+    def resize_image(self, image, max_size=2048):
+        width, height = image.size
+
+        if max(width, height) > max_size:
+            ratio = max_size / max(width, height)
+            new_width = int(width * ratio)
+            new_height = int(height * ratio)
+            image = image.resize((new_width, new_height), Image.ANTIALIAS)        
+        return image
