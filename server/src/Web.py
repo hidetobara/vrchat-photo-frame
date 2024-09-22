@@ -113,7 +113,7 @@ class Web:
             raise Exception(f"Not found {id}.")
 
         sha_folder = self.gen_hash(self.owner)
-        sha_name = self.gen_hash(worksheet + "/" + id + ":" + item.url)
+        sha_name = self.gen_hash(worksheet + "/" + id + ":" + str(item.url))
 
         tmp_dir = Web.TMP_DIR + sha_folder + "/"
         os.makedirs(tmp_dir, exist_ok=True)
@@ -121,6 +121,8 @@ class Web:
 
     def download_img(self, worksheet: str, id: str):
         item = self.get_item(worksheet, id)
+        if not item.has_external_image():
+            raise Exception("NOT https or http.")
         tmp_dir, sha_name = self.prepare_tmp_file(worksheet, id)
 
         ext = None
@@ -200,6 +202,11 @@ class Web:
         tmp_dir, filename, _ = self.download_img(worksheet, id) if im is None else self.save_img(worksheet, id, im)
         with open(os.path.join(tmp_dir, filename), mode="rb") as f:
             self.bucket.upload(self.owner, self.key, worksheet, item.id, f)
+
+        if im:
+            filename = os.path.basename(im.filename)
+            self.sheet.update(worksheet, id, f"r2://{filename}")
+
         return True
 
     def goto(self, worksheet: str):

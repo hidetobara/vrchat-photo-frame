@@ -8,16 +8,30 @@ class Item:
 
     def __init__(self, row: list) -> None:
         self.id = row[0] if len(row) > 0 else None
-        self.url = row[1] if len(row) > 1 else None
-        self.title = row[2] if len(row) > 2 else None
+        self.url = row[1] if len(row) > 1 and len(row[1]) > 0 else None
+        self.title = row[2] if len(row) > 2 and len(row[2]) > 0 else None
         self.public_url = None
 
     def is_valid(self) -> bool:
         if len(self.id) == 0:
             return False
-        if len(self.url) > 0:
-            return self.url.startswith("https://") or self.url.startswith("http://")
-        return True
+        if self.url is None or re.match(r"(http://|https://|r2://)", self.url):
+            return True
+        return False
+    
+    def has_external_image(self) -> bool:
+        if self.url is None:
+            return False
+        if self.url.startswith("https://") or self.url.startswith("http://"):
+            return True
+        return False
+
+    def has_r2_image(self) -> bool:
+        if self.url is None:
+            return False
+        if self.url.startswith("r2://"):
+            return True
+        return False
 
     def get_type(self):
         if self.get_drive_key():

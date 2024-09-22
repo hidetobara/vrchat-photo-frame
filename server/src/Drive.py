@@ -62,19 +62,35 @@ class Sheet(Drive):
             self.gc.session.close()
             self.gc = None
 
-    def load(self, title) -> dict:
+    def select_worksheet(self, title):
         sheet = self.gc.open_by_key(self.key)
         target = sheet.sheet1
         for w in sheet.worksheets():
             if w.title == title:
                 target = w
                 break
+        return target
+
+    def load(self, title) -> dict:
+        target = self.select_worksheet(title)
         table = {}
-        for row in target.get_all_values():
+        for num, row in enumerate(target.get_all_values()):
             i = Item(row)
             if not i.is_valid(): continue
             table[i.id] = i
         return table
+    
+    def update(self, title: str, id: str, value: str) -> bool:
+        worksheet = self.select_worksheet(title)
+        try:
+            for num, row in enumerate(worksheet.col_values(1)):
+                if row == id:
+                    worksheet.update_acell(f"B{num+1}", value)
+                    return True
+            return False
+        except Exception as ex:
+            print("ERROR=", ex)
+            return False
 
 
 class Photos:
