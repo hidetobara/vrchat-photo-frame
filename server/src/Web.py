@@ -191,7 +191,7 @@ class Web:
     def delete_object(self, worksheet: str, id: str):
         self.bucket.delete_object(self.owner, self.key, worksheet, id)
 
-    def upload_object(self, worksheet: str, id :str, im:Image=None):
+    def upload_object(self, worksheet: str, id :str, im :Image=None):
         count = self.get_frame_used()
         if count >= self.get_frame_limit():
             return False
@@ -205,7 +205,7 @@ class Web:
 
         if im:
             filename = os.path.basename(im.filename)
-            self.sheet.update(worksheet, id, f"r2://{filename}")
+            self.sheet.update(worksheet, id, f"/{filename}")
 
         return True
 

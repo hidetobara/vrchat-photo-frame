@@ -1,22 +1,25 @@
 ﻿
-using UnityEngine;
-using VRC.SDKBase;
 
 using System;
-using UnityEditor;
-using UnityEngine.Networking;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using UnityEditor.PackageManager;
 using System.Security.Policy;
 using System.Security.Permissions;
+
+using UnityEngine;
+using UnityEngine.Networking;
+using UnityEditor;
+using UnityEditor.PackageManager;
+using VRC.SDKBase;
+
 
 namespace MikanDealer
 {
 	public class FrameSheet
 	{
-		public string EndPointUrl;
+		public string ApiUrl;
+		public string WebUrl;
 		public string SheetKey;
 		public string Worksheet;
 	}
@@ -68,8 +71,8 @@ namespace MikanDealer
 	[CustomEditor(typeof(SyncFrameManager))]
 	public class MonoBehaviourModelEditor : Editor
 	{
-		private string BASE_URL = "https://sync-frame-api-65759203281.asia-northeast1.run.app/";
-
+		private string API_URL = "https://sync-frame-api-65759203281.asia-northeast1.run.app/";
+		private string WEB_URL = "https://sync-frame-web-65759203281.asia-northeast1.run.app/";
 		SyncFrameManager _Instance = null;
 
 		private FrameSheet CurrentSheet = null;
@@ -78,6 +81,7 @@ namespace MikanDealer
 		private Dictionary<string, PhotoItem> PhotoTable = null;
 		private IEnumerator Lock;
 		private bool EditorIsFoldout = false;
+		private string NewFrameId;
 
 		private string TemporaryCacheSheet = null;
 
@@ -148,8 +152,13 @@ namespace MikanDealer
 				}
 				EditorGUILayout.LabelField("");
 
-				EditorGUILayout.LabelField("5. 子オブジェクトの Photo Frame のインスペクター内の id を表示したい画像のものを入力", style);
+				EditorGUILayout.LabelField("5. 子オブジェクト Photo Frame を作成します。IDはスプレッドシート内のものを入力してください。", style);
 				EditorGUILayout.LabelField("Photo Frame Manager は、この子オブジェクトだけの画像を管理します", style);
+				NewFrameId = EditorGUILayout.TextField("Frame ID", NewFrameId);
+				if (GUILayout.Button("作成") && !string.IsNullOrEmpty(NewFrameId))
+				{
+					MakeNewFrame(NewFrameId);
+				}
 				EditorGUILayout.LabelField("");
 			}
 			EditorGUI.EndDisabledGroup();
@@ -171,6 +180,14 @@ namespace MikanDealer
 				}
 				GUILayout.EndHorizontal();
 				EditorGUILayout.LabelField("");
+
+				EditorGUILayout.LabelField("7. ブラウザ上からも更新できます", style);
+				string sheetKey = GetSpreadSheetKey(_Instance.SpreadSheetUrl);
+				string url = WEB_URL + "?key=" + sheetKey + "&worksheet=" + _Instance.WorkSheet;
+				if (GUILayout.Button("開く"))
+				{
+					System.Diagnostics.Process.Start(url);
+				}
 			}
 
 			EditorIsFoldout = EditorGUILayout.Foldout(EditorIsFoldout, "危険な操作");
@@ -251,7 +268,7 @@ namespace MikanDealer
 
 			foreach (var frame in SelectSyncFrames()) frame.AssignLoading();
 
-			string api = BASE_URL + "sheet/" + key + "/" + worksheet + ".json";
+			string api = API_URL + "sheet/" + key + "/" + worksheet + ".json";
 			using (UnityWebRequest www = UnityWebRequest.Get(api))
 			{
 				yield return www.SendWebRequest();
@@ -301,7 +318,7 @@ namespace MikanDealer
 				while(EditorApplication.timeSinceStartup - start < 3.0) yield return new WaitForSeconds(1f);
 				string key = CurrentSheet.SheetKey;
 				string worksheet = CurrentSheet.Worksheet;
-				string api = BASE_URL + "upload/" + key + "/" + worksheet + "/" + item.ID;
+				string api = API_URL + "upload/" + key + "/" + worksheet + "/" + item.ID;
 				using (UnityWebRequest www = UnityWebRequest.Get(api))
 				{
 					yield return www.SendWebRequest();
@@ -311,7 +328,7 @@ namespace MikanDealer
 						Debug.LogError(api + " " + www.error);
 						continue;
 					}
-					Debug.Log(" Uploaded=" + api);
+					Debug.Log("Uploaded=" + api);
 				}
 			}
 			Debug.Log("アップロード完了！");
@@ -346,7 +363,7 @@ namespace MikanDealer
 				yield break;
 			}
 
-			string api = BASE_URL + "delete/" + key + "/" + worksheet;
+			string api = API_URL + "delete/" + key + "/" + worksheet;
 			using (UnityWebRequest www = UnityWebRequest.Get(api))
 			{
 				yield return www.SendWebRequest();
@@ -385,7 +402,7 @@ namespace MikanDealer
 			{
 				item = PhotoTable[frame.ID];
 				frame.Url = new VRCUrl(item.PublicUrl);
-			}			
+			}
 
 			Renderer renderer = frame.GetComponent<Renderer>();
 			if (renderer == null || renderer.sharedMaterial == null) yield break;
@@ -434,10 +451,15 @@ namespace MikanDealer
 			if (System.IO.File.Exists(path))
 			{
 				var data = Json.Deserialize(System.IO.File.ReadAllText(path)) as Dictionary<string, object>;
-				if (!string.IsNullOrEmpty(data["BASE_URL"] as string))
+				if (!string.IsNullOrEmpty(data["API_URL"] as string))
 				{
-					BASE_URL = data["BASE_URL"] as string;
-					Debug.Log("BASE_URL is overwritten :" + BASE_URL);
+					API_URL = data["API_URL"] as string;
+					Debug.Log("API_URL is overwritten :" + API_URL);
+				}
+				if (!string.IsNullOrEmpty(data["WEB_URL"] as string))
+				{
+					WEB_URL = data["WEB_URL"] as string;
+					Debug.Log("WEB_URL is overwritten :" + WEB_URL);
 				}
 			}
 		}
@@ -446,10 +468,32 @@ namespace MikanDealer
 		{
 			CurrentSheet = new FrameSheet()
 			{
-				EndPointUrl = BASE_URL.EndsWith("/") ? BASE_URL : BASE_URL + "/",
+				ApiUrl = API_URL.EndsWith("/") ? API_URL : API_URL + "/",
+				WebUrl = WEB_URL.EndsWith("/") ? WEB_URL : WEB_URL + "/",
 				SheetKey = GetSpreadSheetKey(_Instance.SpreadSheetUrl),
 				Worksheet = _Instance.WorkSheet
 			};
+		}
+
+		private void MakeNewFrame(string id)
+		{
+			GameObject selected = Selection.activeGameObject;
+			if (selected == null || selected.GetComponent<SyncFrameManager>() == null) return;
+
+			GameObject newFrame = GameObject.CreatePrimitive(PrimitiveType.Quad);
+			newFrame.name = id;
+			newFrame.transform.parent = selected.transform;
+			newFrame.transform.localPosition = new Vector3(0, 0, 0);
+			newFrame.GetComponent<Renderer>().material = new Material(Shader.Find("MikanDealer/SyncFrame"));
+
+			Debug.Log(PhotoTable[id]);
+			var component = newFrame.AddComponent<SyncFrame>();
+			component.ID = id;
+			if (PhotoTable != null && PhotoTable.ContainsKey(id))
+			{
+				PhotoItem item = PhotoTable[id];
+				component.Url = new VRCUrl(item.PublicUrl);
+			}
 		}
 	}
 }

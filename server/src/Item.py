@@ -15,7 +15,7 @@ class Item:
     def is_valid(self) -> bool:
         if len(self.id) == 0:
             return False
-        if self.url is None or re.match(r"(http://|https://|r2://)", self.url):
+        if self.url is None or re.match(r"(http://|https://|/)", self.url):
             return True
         return False
     
@@ -26,10 +26,10 @@ class Item:
             return True
         return False
 
-    def has_r2_image(self) -> bool:
+    def has_direct_image(self) -> bool:
         if self.url is None:
             return False
-        if self.url.startswith("r2://"):
+        if self.url.startswith("/"):
             return True
         return False
 
