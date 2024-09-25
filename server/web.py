@@ -10,6 +10,7 @@ web = Web(Config("private/syncframe.json"))
 key = st.query_params["key"] if "key" in st.query_params else None
 worksheet = st.query_params["worksheet"] if "worksheet" in st.query_params else None
 
+st.set_page_config(layout="wide")
 st.markdown(
     """
     <style>
