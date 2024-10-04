@@ -152,8 +152,7 @@ namespace MikanDealer
 				}
 				EditorGUILayout.LabelField("");
 
-				EditorGUILayout.LabelField("5. 子オブジェクト Photo Frame を作成します。IDはスプレッドシート内のものを入力してください。", style);
-				EditorGUILayout.LabelField("Photo Frame Manager は、この子オブジェクトだけの画像を管理します", style);
+				EditorGUILayout.LabelField("5. 表示用の Frame を新しく作成します。ID はスプレッドシート内のものを入力してください。", style);
 				NewFrameId = EditorGUILayout.TextField("Frame ID", NewFrameId);
 				if (GUILayout.Button("作成") && !string.IsNullOrEmpty(NewFrameId))
 				{
@@ -481,7 +480,7 @@ namespace MikanDealer
 			if (selected == null || selected.GetComponent<SyncFrameManager>() == null) return;
 
 			GameObject newFrame = GameObject.CreatePrimitive(PrimitiveType.Quad);
-			newFrame.name = id;
+			newFrame.name = "Frame_" + id;
 			newFrame.transform.parent = selected.transform;
 			newFrame.transform.localPosition = new Vector3(0, 0, 0);
 			newFrame.GetComponent<Renderer>().material = new Material(Shader.Find("MikanDealer/SyncFrame"));
